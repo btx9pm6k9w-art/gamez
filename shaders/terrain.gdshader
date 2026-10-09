@@ -67,6 +67,14 @@ vec3 triplanar_normal(sampler2D tex, vec3 p, vec3 n, float scale, float strength
 	return normalize(tx.zyx * w.x + ty.xzy * w.y + tz.xyz * w.z);
 }
 
+// Top-down (Y) projection only, for near-flat sand: decoded, whiteout-blended
+// onto the surface normal, in world space.
+vec3 planar_normal(sampler2D tex, vec3 p, vec3 n, float scale, float strength) {
+	vec3 ty = unpack_normal(texture(tex, p.xz * scale).rg);
+	ty.xy *= strength;
+	return normalize(vec3(ty.x + n.x, abs(ty.z) * n.y, ty.y + n.z));
+}
+
 void fragment() {
 	float n_large = texture(detail_noise, world_pos.xz * 0.018).r;
 	float n_mid = triplanar(detail_noise, world_pos, world_normal, 0.09).r;
@@ -109,23 +117,26 @@ void fragment() {
 	col = mix(col, scorch_color * (0.6 + 0.8 * n_fine), scorch * 0.92);
 
 	float stony = clamp(max(rock, gravel * 0.8), 0.0, 1.0);
+	float bump = mix(0.5, 1.6, rock) + scorch * 0.6 + gravel * 1.2 - dune * 0.3;
+	vec3 n0 = normalize(world_normal);
+	vec3 wn = n0;
 	if (use_textures) {
-		// Two scales of each scan hide the tiling from the RTS camera.
-		vec3 st = triplanar(sand_tex, world_pos, world_normal, 0.21).rgb * 0.6
-			+ triplanar(sand_tex, world_pos, world_normal, 0.047).rgb * 0.4;
-		vec3 rt = triplanar(rock_tex, world_pos, world_normal, 0.11).rgb * 0.6
-			+ triplanar(rock_tex, world_pos, world_normal, 0.031).rgb * 0.4;
-		vec3 detail = mix(st / max(sand_mean, vec3(0.02)), rt / max(rock_mean, vec3(0.02)), stony);
+		// Sand is near-flat, so one top-down sample is enough; the noise already in
+		// `col` hides the tiling. Rock needs triplanar but only where rock shows.
+		vec3 detail = texture(sand_tex, world_pos.xz * 0.21).rgb / max(sand_mean, vec3(0.02));
+		wn = planar_normal(sand_nor, world_pos, n0, 0.21, bump);
+		if (stony > 0.02) {
+			vec3 rt = triplanar(rock_tex, world_pos, world_normal, 0.11).rgb / max(rock_mean, vec3(0.02));
+			detail = mix(detail, rt, stony);
+			wn = normalize(mix(wn, triplanar_normal(rock_nor, world_pos, n0, 0.11, bump), stony));
+		}
 		col *= mix(vec3(1.0), clamp(detail, 0.0, 1.5), (1.0 - scorch) * (1.0 - wet * 0.6));
 	}
 	ALBEDO = col;
 	ROUGHNESS = mix(mix(mix(0.93, 0.78, rock), 0.7, salt), 0.32, wet);
 	SPECULAR = 0.45;
-	float bump = mix(0.5, 1.6, rock) + scorch * 0.6 + gravel * 1.2 - dune * 0.3;
-	vec3 wn = triplanar_normal(detail_normal, world_pos, normalize(world_normal), 0.25, bump);
-	if (use_textures) {
-		wn = normalize(mix(triplanar_normal(sand_nor, world_pos, normalize(world_normal), 0.21, bump),
-			triplanar_normal(rock_nor, world_pos, normalize(world_normal), 0.11, bump), stony));
+	if (!use_textures) {
+		wn = triplanar_normal(detail_normal, world_pos, n0, 0.25, bump);
 	}
 	NORMAL = normalize((VIEW_MATRIX * vec4(wn, 0.0)).xyz);
 	AO = mix(1.0, 0.7, scorch);

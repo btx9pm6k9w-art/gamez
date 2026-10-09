@@ -40,6 +40,8 @@ var _feed: VBoxContainer
 var _abilities: Control
 var _card: Control
 var _post: ColorRect
+var _post_allowed := true
+var _flash_tween: Tween
 
 
 func _ready() -> void:
@@ -199,16 +201,23 @@ func set_mission(m: Node, eco: Node) -> void:
 
 func _on_flash(strength: float, origin: Vector3) -> void:
 	var cam := rig.camera
-	if not _post.visible or cam.is_position_behind(origin) or not cam.is_position_in_frustum(origin):
+	if not _post_allowed or cam.is_position_behind(origin) or not cam.is_position_in_frustum(origin):
 		return
+	# The pass copies the whole Retina frame (about 2 ms), so it is only shown
+	# while a blast flash is playing.
 	var m := _post.material as ShaderMaterial
-	var tw := create_tween()
-	tw.tween_method(func(v: float) -> void: m.set_shader_parameter("flash", v), strength, 0.0, 0.25 + strength * 0.3) \
+	_post.visible = true
+	if _flash_tween:
+		_flash_tween.kill()
+	_flash_tween = create_tween()
+	_flash_tween.tween_method(func(v: float) -> void: m.set_shader_parameter("flash", v), strength, 0.0, 0.25 + strength * 0.3) \
 		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_EXPO)
+	_flash_tween.tween_callback(func() -> void: _post.visible = false)
 
 
 func _on_preset_changed(p: int) -> void:
-	_post.visible = p >= GameSettings.Preset.MEDIUM
+	_post_allowed = p >= GameSettings.Preset.MEDIUM
+	_post.visible = false
 
 
 ## Big centre banner for moments that matter (mission start, waves,

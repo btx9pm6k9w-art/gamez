@@ -16,7 +16,7 @@ const SETTINGS_VERSION := 2
 ## rendered at before upscaling. Without the budget a maximised window on a
 ## Retina display renders 8+ MP natively and Ultra drops below 20 fps on an M4 Pro.
 const MAX_SCALE := [0.67, 0.77, 0.85, 1.0]
-const PIXEL_BUDGET_MP := [1.8, 2.2, 2.2, 3.2]
+const PIXEL_BUDGET_MP := [1.8, 2.6, 3.2, 4.2]
 ## The HUD is laid out for a 1080-pixel-tall window and scaled up from there.
 const UI_BASE_HEIGHT := 1080.0
 
@@ -86,16 +86,19 @@ func apply_preset(p: int) -> void:
 	preset = clampi(p, Preset.LOW, Preset.ULTRA)
 	var vp := get_viewport()
 	var metal := RenderingServer.get_current_rendering_driver_name() == "metal"
-	var temporal_upscaler := Viewport.SCALING_3D_MODE_METALFX_TEMPORAL if metal else Viewport.SCALING_3D_MODE_FSR2
+	# Measured on an M4 Pro at an 8.6 MP Retina window: MetalFX temporal costs
+	# about 8 ms a frame, MetalFX spatial plus TAA about 2.5 ms, so Metal uses
+	# the spatial upscaler. FSR 2 (unmeasured) stays the choice elsewhere.
+	var upscaler := Viewport.SCALING_3D_MODE_METALFX_SPATIAL if metal else Viewport.SCALING_3D_MODE_FSR2
 
 	# Resolution scale and anti-aliasing. Temporal upscalers replace TAA; Ultra
 	# only renders natively (with TAA) when the window fits its pixel budget.
 	var scale := render_scale()
 	var native := scale >= 1.0
-	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR if native else temporal_upscaler
+	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR if native else upscaler
 	vp.scaling_3d_scale = scale
-	vp.use_taa = native
-	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_SMAA if preset == Preset.LOW else Viewport.SCREEN_SPACE_AA_DISABLED
+	vp.use_taa = native or (metal and preset >= Preset.MEDIUM) # FSR 2 brings its own temporal AA
+	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if preset == Preset.LOW else Viewport.SCREEN_SPACE_AA_DISABLED
 	vp.msaa_3d = Viewport.MSAA_DISABLED
 	vp.mesh_lod_threshold = [4.0, 2.0, 1.0, 0.5][preset]
 
@@ -142,7 +145,7 @@ func apply_preset(p: int) -> void:
 		_env.ssr_max_steps = [16, 32, 32, 64][preset]
 		_env.sdfgi_enabled = preset >= Preset.ULTRA
 		_env.sdfgi_cascades = 4
-		_env.volumetric_fog_enabled = preset >= Preset.HIGH
+		_env.volumetric_fog_enabled = preset >= Preset.ULTRA # distance haze comes from the cheap depth fog
 		_env.glow_enabled = preset >= Preset.MEDIUM
 		_env.fog_enabled = true
 

@@ -65,6 +65,31 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
   restarts go straight to the briefing. The AI, economy and orders wait until
   the mission starts. `RTSCamera.cinematic` drives the orbit.
 - Fonts are SIL OFL, logged in `docs/SOURCES.md`.
+### Performance pass 2: back above 60 fps on the larger map (from the Mac)
+Measured on the M4 Pro, window maximised on the Retina display (3670 x 2342), Mission 1 start:
+
+| Preset | Before | After |
+|---|---|---|
+| Low | 81 fps | 120 fps (display limit) |
+| Medium | 52 fps | ~100 fps |
+| High (default) | 38 fps | ~69 fps, at a higher internal resolution |
+| Ultra | 29 fps | ~38 fps |
+
+- **MetalFX temporal upscaling was the main cost**: about 8 ms a frame at this output
+  size. Metal now uses MetalFX spatial plus TAA (about 2.5 ms), which also removed
+  the stair-stepped edges the temporal upscaler was producing. Internal resolution
+  budgets went up to 2.6 / 3.2 / 4.2 MP for Medium / High / Ultra.
+- **The post-process pass** copied the whole Retina frame every frame (about 2 ms) for
+  a vignette. It now only shows while a blast flash plays; sharpening, lens fringe,
+  grain and vignette default to off.
+- **Terrain textures**: sand uses one top-down sample and rock is triplanar only where
+  rock shows (was 18 samples per pixel; about 3 ms saved).
+- Volumetric fog is Ultra-only; distance haze comes from the depth fog.
+- Merging props (db692b6) halved draw calls from about 1,500 to about 800 but did not
+  change the frame rate: the game was never draw-call bound. That earlier diagnosis
+  from the Mac was wrong.
+- Benchmark additions: object census, `--benchmark-high-costs`, `--benchmark-hide`,
+  `--benchmark-scripts`, `--benchmark-only=N`.
 
 ### Fixes after the Mac's art-pass run
 - Draw calls: SetDressing props (ghaf trees, mangroves, pillars, pier,

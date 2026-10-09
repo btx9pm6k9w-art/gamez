@@ -165,9 +165,11 @@ tools/                   setup and check scripts
   (a folder saves one close-up per unit; a `.png` path saves the overview).
 - The models are low-poly and stylised (the best CC0 military set available); the
   Ranger is chunkier than the IRGC rifleman, whose rifle sits loosely in the hand.
-- Frame rate on the M4 Pro at High is about 40 fps since the battlefield grew. It is
-  draw-call bound: merge static props into MultiMeshes and give trees and props a
-  visibility range before adding more scenery.
+- Frame rate on the M4 Pro at High is about 69 fps at mission start (see CHANGELOG,
+  performance pass 2). The costs were full-screen passes at Retina size (MetalFX
+  temporal, the post-process screen copy) and terrain texture samples, not draw
+  calls. Before adding any full-screen effect, measure it with
+  `-- --benchmark --benchmark-high-costs`. Heavy combat is still unprofiled.
 - An unattended run with the cursor parked at a screen edge scrolls the camera away;
   the benchmark switches edge panning off for that reason.
 

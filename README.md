@@ -87,19 +87,19 @@ audio/ambience/coast.ogg
 
 Presets are balanced from measurements on an M4 Pro MacBook Pro with the window
 maximised on its Retina display (8.6 million pixels). The 3D scene is rendered inside a
-per-preset pixel budget and upscaled with MetalFX temporal (FSR 2 elsewhere); the HUD is
+per-preset pixel budget and upscaled with MetalFX spatial plus TAA (FSR 2 elsewhere); the HUD is
 always drawn at native resolution.
 
 | | Low | Medium | High (M-series default) | Ultra |
 |---|---|---|---|---|
-| 3D pixel budget | 1.8 MP | 2.2 MP | 2.2 MP | 3.2 MP |
+| 3D pixel budget | 1.8 MP | 2.6 MP | 3.2 MP | 4.2 MP |
 | Global illumination | off | off | off | SDFGI 4 cascades, 32 rays + SSIL |
 | Ambient occlusion | off | SSAO | SSAO | SSAO high |
 | Reflections | off | off | SSR | SSR |
 | Shadows | 2K hard | 2K soft | 4K soft | 4K soft, high filter |
-| Volumetric fog | off | off | on | on, larger volume |
-| Glow and cinematic pass | off | on | on | on |
-| M4 Pro, maximised Retina | ~105 fps | ~75 fps | ~65 fps | ~40 fps |
+| Volumetric fog | off | off | off (depth haze) | on |
+| Glow, blast flash | off | on | on | on |
+| M4 Pro, maximised Retina (Mission 1 start) | 120 fps (display limit) | ~100 fps | ~69 fps | ~38 fps |
 
 Always on: AgX tonemapping, PBR materials, GPU particles with terrain collision,
 decals, HDR output on XDR displays (F5 toggles). The frame rate is capped at 60
@@ -111,7 +111,10 @@ To re-measure on your own machine (prints `BENCH` lines and saves a screenshot p
 
 ```sh
 godot --path . -- --benchmark --benchmark-out=/tmp/gamez-bench   # all four presets
-godot --path . -- --benchmark --benchmark-costs                  # cost of each effect
+godot --path . -- --benchmark --benchmark-costs                  # cost of each effect, from Ultra
+godot --path . -- --benchmark --benchmark-high-costs             # upscaler, overlays and effects, from High
+godot --path . -- --benchmark --benchmark-hide                   # cost of each part of the scene
+godot --path . -- --benchmark --benchmark-scripts                # cost of each scripted system
 ```
 
 ## Controls
