@@ -35,6 +35,25 @@ From a terminal on macOS:
 - AI: defenders counter-attack, three reinforcement waves, win/lose conditions.
 - Time of day: golden hour, midday and night (vehicle headlights, lit windows).
 
+## Audio
+
+`scripts/audio/` holds the sound system: Music, SFX, Ambience, UI and Voice buses
+(reverb, glue compression, sidechain ducking, master limiter), positional one-shots with
+random variation, engine and drone loops, coast ambience and adaptive music in three
+stems (calm, tension, combat) driven by combat intensity.
+
+Until recorded audio is added, every sound is synthesised at startup by `SoundSynth`.
+To use real recordings, drop Ogg files in and they replace the placeholders automatically:
+
+```
+audio/sfx/<name>.ogg or <name>_1.ogg, <name>_2.ogg ...   explosion_small, explosion_big, cannon,
+                                                        rifle, laser, launch, drone_engine, engine,
+                                                        missile_incoming, ui_select, ui_confirm,
+                                                        ui_error, alert
+audio/music/calm.ogg, tension.ogg, combat.ogg           same length and tempo, looped together
+audio/ambience/coast.ogg
+```
+
 ## Graphics
 
 Everything is configured for the best image Godot 4.7 can produce, then scaled by preset:

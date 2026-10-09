@@ -149,6 +149,7 @@ func show_message(text: String, color := ACCENT, duration := 4.0) -> void:
 	_message.text = text
 	_message.add_theme_color_override("font_color", color)
 	_message_time = duration
+	Audio.play_ui("alert")
 
 
 func _unhandled_key_input(event: InputEvent) -> void:

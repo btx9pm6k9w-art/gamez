@@ -256,6 +256,8 @@ func explosion(pos: Vector3, size: float) -> void:
 
 	_shockwave(pos, size)
 	_flash(pos, 6.0 + size * 4.0, 6.0 + size * 6.0, 0.35 + size * 0.1)
+	Audio.play_3d("explosion_big" if size >= 2.0 else "explosion_small", pos, 2.0 + size * 2.0, 1.15 - minf(size, 6.0) * 0.06, 6)
+	Audio.bump_intensity(0.04 * size)
 	shake_requested.emit(0.25 * size, pos)
 
 
@@ -286,6 +288,13 @@ func muzzle_flash(pos: Vector3, size := 1.0) -> void:
 		smoke.scale_max = 1.2 * size
 		_emit(smoke, _smoke_mesh, pos, 6, 1.8, 0.9)
 	_flash(pos, 3.0 * size, 5.0 * size, 0.12, Color(1.0, 0.75, 0.45))
+	if size >= 1.5:
+		Audio.play_3d("cannon", pos, 2.0)
+	elif size >= 0.9:
+		Audio.play_3d("launch", pos, -2.0)
+	else:
+		Audio.play_3d("rifle", pos, -8.0, 1.0, 10)
+	Audio.bump_intensity(0.01)
 
 
 func impact(pos: Vector3) -> void:
@@ -317,6 +326,7 @@ func tracer(from: Vector3, to: Vector3, color := Color(4.0, 2.6, 1.2), width := 
 ## Laser air-defence beam with a light at the emitter and a burst at the target.
 func laser(from: Vector3, to: Vector3) -> void:
 	tracer(from, to, Color(1.0, 6.0, 8.0), 0.12, 0.22)
+	Audio.play_3d("laser", from, -4.0, 1.0, 4)
 	_flash(to, 4.0, 6.0, 0.2, Color(0.4, 0.9, 1.0))
 	impact(to)
 

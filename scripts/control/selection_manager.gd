@@ -55,6 +55,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				for s in selected:
 					s.order_attack(u)
 				VFX.ground_ring(u.global_position, Color(3, 0.4, 0.3, 1), u.def["radius"] * 1.6, 0.5)
+				Audio.play_ui("ui_confirm")
 			else:
 				_issue_ground_order(mb.position, false)
 	elif event is InputEventMouseMotion:
@@ -71,6 +72,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			attack_move_armed = not selected.is_empty()
 		elif event.is_action_pressed("ability_strike"):
 			strike_armed = strike_cooldown <= 0.0
+			if not strike_armed:
+				Audio.play_ui("ui_error")
 		elif event.is_action_pressed("select_all_army"):
 			_set_selection(_own_units())
 		elif event.is_action_pressed("cycle_time_of_day"):
@@ -132,6 +135,8 @@ func _set_selection(units: Array[Unit]) -> void:
 	selected = units
 	for u in selected:
 		u.selected = true
+	if not selected.is_empty():
+		Audio.play_ui("ui_select")
 	selection_changed.emit(selected)
 
 
@@ -205,6 +210,7 @@ func _issue_ground_order(screen: Vector2, attack_move: bool) -> void:
 	if p == Vector3.INF:
 		return
 	VFX.ground_ring(p, Color(3, 1.2, 0.3, 1) if attack_move else Color(0.5, 3, 1.2, 1), 1.2, 0.6)
+	Audio.play_ui("ui_confirm")
 	# Spread the group in a loose grid around the click, facing the move.
 	var center := Vector3.ZERO
 	for u in own:
@@ -276,7 +282,9 @@ func _fire_strike(screen: Vector2) -> void:
 	missile.rotate_object_local(Vector3.RIGHT, -PI * 0.5)
 	trail.emitting = true
 	var tw := battlefield.create_tween()
+	Audio.play_ui("alert")
 	tw.tween_interval(STRIKE_DELAY - 0.9)
+	tw.tween_callback(func() -> void: Audio.play_3d("missile_incoming", p, 6.0, 1.0, 2))
 	tw.tween_property(missile, "global_position", p, 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func() -> void:
 		battlefield.blast(p, 400.0, 10.0, 4.5, Battlefield.COALITION, 6.0)

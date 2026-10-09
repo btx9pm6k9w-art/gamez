@@ -38,6 +38,8 @@ var _anim_t := 0.0
 var _yaw := 0.0
 var _alive := true
 var _trail: GPUParticles3D
+var _engine: AudioStreamPlayer3D
+var _engine_retry := 0.0
 
 
 func setup(id: String, p_team: int, bf: Node) -> void:
@@ -222,8 +224,25 @@ func _on_velocity_computed(safe: Vector3) -> void:
 	_velocity = safe
 
 
+func _update_engine_sound(delta: float, speed: float) -> void:
+	if _engine == null:
+		_engine_retry -= delta
+		var wants: bool = is_air or def["model"] == "tank" or def["model"].ends_with("truck")
+		if wants and _engine_retry <= 0.0:
+			_engine_retry = 1.0
+			_engine = Audio.attach_loop(self, "drone_engine" if is_air else "engine", 0.0 if is_air else -12.0)
+		return
+	if not is_air:
+		var k := clampf(speed / float(def["speed"]), 0.0, 1.0)
+		_engine.volume_db = lerpf(-22.0, -9.0, k)
+		_engine.pitch_scale = lerpf(0.85, 1.25, k)
+
+
 func _process(delta: float) -> void:
-	if not _alive or is_air:
+	if not _alive:
+		return
+	_update_engine_sound(delta, _velocity.length())
+	if is_air:
 		return
 	var v := _velocity
 	v.y = 0.0

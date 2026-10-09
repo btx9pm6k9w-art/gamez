@@ -15,6 +15,7 @@ config/icon="res://icon.svg"
 
 GameSettings="*res://scripts/autoload/game_settings.gd"
 VFX="*res://scripts/autoload/vfx.gd"
+Audio="*res://scripts/audio/audio.gd"
 
 [display]
 
