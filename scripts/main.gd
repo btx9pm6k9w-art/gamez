@@ -88,7 +88,12 @@ func _ready() -> void:
 	mission.name = "Mission"
 	add_child(mission)
 	mission.mission_ended.connect(_on_mission_ended)
-	if "--benchmark" in OS.get_cmdline_user_args():
+	if "--field-test" in OS.get_cmdline_user_args():
+		_start_mission(1)
+		var field_test: Node = preload("res://scripts/dev/field_test.gd").new()
+		field_test.main = self
+		add_child(field_test)
+	elif "--benchmark" in OS.get_cmdline_user_args():
 		# Benchmarks skip the briefing so the scene is identical every run.
 		_start_mission(1)
 		add_child(Benchmark.new())

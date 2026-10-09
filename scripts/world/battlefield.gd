@@ -696,7 +696,9 @@ func _model_house(index: int, size: Vector3) -> Node3D:
 	if not ModelLibrary.has(file):
 		return null
 	var root := Node3D.new()
-	var body := ModelLibrary.fitted(file, maxf(size.x, size.z) * 1.15)
+	# Keep the model inside the footprint the village layout was planned for, so
+	# the gaps between houses stay wide enough for the navmesh.
+	var body := ModelLibrary.fitted(file, minf(size.x, size.z))
 	var plaster := Color(0.82, 0.74, 0.6).darkened(_rng.randf_range(0.0, 0.18))
 	ModelLibrary.recolor(body, {
 		"_defaultMat": plaster,

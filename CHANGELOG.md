@@ -5,6 +5,23 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-09
 
+### Mac field test of fog of war, group AI, line of fire and navmeshes
+- **Fixed** a script error in `SimpleAI._alive` once a grouped unit had been freed
+  (typed loop variable over freed instances).
+- **Fixed** "axis must be normalized" errors from vehicle tilt in
+  `Unit._integrate_ground` (83 in one short run).
+- **Fixed** stuck flank groups: the north wave entry at (112, 8) is land but vehicles
+  cannot drive from it to the beachhead. `SimpleAI._land_entries` now skips entries
+  with no vehicle path, so that group no longer stands at its spawn.
+- Village houses are scaled to the footprint the layout planned for (they were up
+  to 15% wider than the old boxes).
+- `export_presets.cfg`: macOS preset, universal, ad-hoc signed, no credentials,
+  `scripts/dev` excluded. `import_etc2_astc` is on, which macOS export requires. The
+  export itself has not run: this Mac has no Godot export templates installed.
+- `scripts/dev/field_test.gd` (`-- --field-test`): scripted checks of pathfinding on
+  both navigation layers, line of fire across a house, drawn-speed smoothness capped
+  and uncapped, fog consistency and cost, and a 5x-speed log of what each AI group does.
+
 ### Fog of war and an AI that fights in groups
 - **Fog of war** (`scripts/world/vision.gd`): a 2 m grid with unexplored,
   explored and visible cells. Enemy units outside your sight are hidden, are

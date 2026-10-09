@@ -38,6 +38,7 @@ window/hdr/request_hdr_output=true
 
 [rendering]
 
+textures/vram_compression/import_etc2_astc=true
 renderer/rendering_method="forward_plus"
 rendering_device/driver.macos="metal"
 viewport/hdr_2d=true

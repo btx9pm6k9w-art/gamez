@@ -214,7 +214,7 @@ func _order_group(g: Dictionary, p: Vector3, attack: bool) -> void:
 
 func _alive(g: Dictionary) -> Array[Unit]:
 	var out: Array[Unit] = []
-	for u: Unit in g["units"]:
+	for u in g["units"]: # untyped: a freed unit cannot be assigned to a typed variable
 		if is_instance_valid(u) and u.is_alive():
 			out.append(u)
 	g["units"] = out
@@ -281,10 +281,22 @@ func _run_groups(dt: float) -> void:
 						_leftovers.append(u)
 
 
+## True when vehicles can drive from `from` to the beachhead. An entry on an
+## isolated patch of navmesh would leave its wave standing where it spawned.
+func _reaches_beachhead(from: Vector3) -> bool:
+	var map := battlefield.get_world_3d().navigation_map
+	if NavigationServer3D.map_get_iteration_id(map) == 0:
+		return true # navmesh not baked yet: do not rule anything out
+	var a := Vector3(from.x, battlefield.terrain.height_at(from), from.z)
+	var b := Vector3(BEACHHEAD.x, battlefield.terrain.height_at(BEACHHEAD), BEACHHEAD.z)
+	var path := NavigationServer3D.map_get_path(map, a, b, true, Battlefield.NAV_LAYER_VEHICLE)
+	return not path.is_empty() and Vector2(path[path.size() - 1].x - b.x, path[path.size() - 1].z - b.z).length() < 20.0
+
+
 func _land_entries() -> Array:
 	var out := []
 	for e: Array in ENTRIES:
-		if battlefield.terrain.is_land(e[0]):
+		if battlefield.terrain.is_land(e[0]) and _reaches_beachhead(e[0]):
 			out.append(e)
 	if out.is_empty():
 		out.append([spawn_point, "the mountains"])
