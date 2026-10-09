@@ -8,6 +8,7 @@ const Mission01 := preload("res://scripts/missions/mission_01_beachhead.gd")
 const Briefing := preload("res://scripts/ui/briefing.gd")
 const Sidebar := preload("res://scripts/ui/sidebar.gd")
 const MainMenu := preload("res://scripts/ui/main_menu.gd")
+const Vision := preload("res://scripts/world/vision.gd")
 
 const SEED := 2028
 
@@ -34,6 +35,14 @@ func _ready() -> void:
 	battlefield.name = "Battlefield"
 	add_child(battlefield)
 	battlefield.build(SEED)
+
+	var vision := Vision.new()
+	vision.name = "Vision"
+	add_child(vision)
+	vision.setup(battlefield)
+	battlefield.vision = vision
+	# The landing beach is known ground.
+	vision.reveal(Vector3(66, 0, 160), 34.0)
 
 	rig = RTSCamera.new()
 	rig.name = "CameraRig"
@@ -88,6 +97,7 @@ func _ready() -> void:
 		for n: Node in [ai, economy, selection]:
 			n.process_mode = Node.PROCESS_MODE_DISABLED
 		hud.visible = false
+		battlefield.vision.enabled = false
 		if _menu_seen:
 			_show_briefing()
 		else:
@@ -118,6 +128,7 @@ func _start_mission(difficulty: int) -> void:
 	for n: Node in [ai, economy, selection]:
 		n.process_mode = Node.PROCESS_MODE_INHERIT
 	hud.visible = true
+	battlefield.vision.enabled = true
 	mission.difficulty = difficulty
 	ai.difficulty = difficulty
 	mission.start(battlefield, economy, ai, hud)

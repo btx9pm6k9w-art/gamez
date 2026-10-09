@@ -5,6 +5,22 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-09
 
+### Fog of war and an AI that fights in groups
+- **Fog of war** (`scripts/world/vision.gd`): a 2 m grid with unexplored,
+  explored and visible cells. Enemy units outside your sight are hidden, are
+  left off the tactical map and cannot be picked or auto-targeted. The world
+  darkens through one map-sized decal (no screen-space pass); the tactical map
+  shows the same fog. High ground sees up to 20% further. The landing beach
+  starts explored; fog is off on the main menu. The K9 robot dog is now the
+  scout (vision 46 m).
+- **AI groups with roles** (`scripts/ai/simple_ai.gd`): the AI only knows what
+  its units have seen in the last 30 s, plus who holds each derrick. Waves
+  gather at a staging point short of the target and attack together; from
+  Veteran up a third of each wave flanks from another entry and joins once
+  the assault is engaged. Beaten groups fall back and their survivors join
+  the next wave. Raids on derricks and the mission's counter-attack use the
+  same groups; idle defenders go to help neighbours under fire.
+
 ### UI fixes from the Mac screenshots
 - Main menu and briefing now fill the window (they kept an empty size once in
   the tree), so the briefing is centred and the menu dims the map behind it.

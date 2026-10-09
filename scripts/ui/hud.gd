@@ -295,7 +295,7 @@ func _draw_overlay() -> void:
 	var now := Time.get_ticks_msec() / 1000.0
 	for t in 2:
 		for u: Unit in battlefield.units[t]:
-			if not is_instance_valid(u) or not u.is_alive() or cam.is_position_behind(u.global_position):
+			if not is_instance_valid(u) or not u.is_alive() or not u.visible or cam.is_position_behind(u.global_position):
 				continue
 			var show_bar := u.selected or u == selection.hovered or now - u.last_hit_time < 3.0
 			if not show_bar:

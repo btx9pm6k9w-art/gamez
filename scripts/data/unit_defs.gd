@@ -53,7 +53,7 @@ const DEFS := {
 	},
 	"k9": {
 		"display": "K9 Robot Dog", "faction": "coalition", "model": "robodog",
-		"hp": 140.0, "speed": 8.0, "radius": 0.7, "range": 14.0, "vision": 36.0,
+		"hp": 140.0, "speed": 8.0, "radius": 0.7, "range": 14.0, "vision": 46.0,
 		"weapon": "rifle", "damage": 7.0, "cooldown": 0.25, "splash": 0.0, "crater": 0.0,
 		"targets": "ground",
 		"cost": 300, "build_time": 7.0, "category": "infantry",

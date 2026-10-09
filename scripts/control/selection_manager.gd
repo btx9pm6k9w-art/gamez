@@ -246,7 +246,7 @@ func _unit_at(screen: Vector2) -> Unit:
 	var best_d := 26.0
 	for t in 2:
 		for u: Unit in battlefield.units[t]:
-			if not is_instance_valid(u) or not u.is_alive() or not _on_screen(u):
+			if not is_instance_valid(u) or not u.is_alive() or not u.visible or not _on_screen(u):
 				continue
 			var d := _screen_pos(u).distance_to(screen)
 			var pick := 14.0 + float(u.def["radius"]) * 600.0 / maxf(rig.camera.global_position.distance_to(u.global_position), 1.0)

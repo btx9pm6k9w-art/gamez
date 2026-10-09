@@ -181,10 +181,12 @@ which read commit 9dfc06c) in its priority order; see DECISIONS #23.
 1. **Mac verification** of the UI overhaul, line of fire, fixed-step movement,
    the two navmeshes and the new terrain normals. Commit a macOS export preset
    (`export_presets.cfg`, no credentials) and test an exported app.
-2. **Fog of war and scouting:** a vision grid (unexplored, explored, visible)
-   used by rendering, targeting, power targeting and the minimap.
-3. **AI groups with roles** (defend, flank, raid, protect launchers, retreat)
-   using only what the AI can see, instead of timed waves at the player centre.
+2. **Check fog of war and the group AI on the Mac** (both new, untested in
+   the engine): decal orientation and darkness, the cost of rebuilding the
+   decal atlas when fog changes, waves staging and flanking. Later: fog on the
+   sea surface (the decal skips transparent water), commander powers needing a
+   spotted target, AI protecting its launchers.
+3. Polish the group AI: retreat thresholds, launcher escorts, harbour assault.
 4. **Water routes for boats:** a water navmesh instead of probing headings.
 5. **Polish Mission 1 to a complete 8 to 12 minute mission** before adding
    units: cover, scouting, a road or dune flank choice, harbour loss condition.

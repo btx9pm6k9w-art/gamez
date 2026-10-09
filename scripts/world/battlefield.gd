@@ -19,6 +19,8 @@ var sun: DirectionalLight3D
 var time_of_day := TimeOfDay.MIDDAY
 var units: Array[Array] = [[], []]
 var props: Array[Dictionary] = []
+## Fog of war for the player (scripts/world/vision.gd); null when not in use.
+var vision: Node
 
 var _world_env: WorldEnvironment
 var _physical_sky: PhysicalSkyMaterial
@@ -972,6 +974,8 @@ func find_target(seeker: Unit, radius: float) -> Unit:
 	var enemy_team := 1 - seeker.team
 	for other: Unit in units[enemy_team]:
 		if not is_instance_valid(other) or not other.is_alive() or not seeker._can_target(other):
+			continue
+		if seeker.team == COALITION and vision != null and not vision.is_visible_at(other.global_position):
 			continue
 		var d := seeker.global_position.distance_to(other.global_position)
 		if d < radius:

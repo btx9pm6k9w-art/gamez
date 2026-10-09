@@ -46,6 +46,9 @@ func _draw() -> void:
 	UI.draw_header(self, Vector2(8, 4), size.x - 16, "Tactical map")
 	var r := _map_rect()
 	draw_texture_rect(_tex, r, false, Color(0.85, 0.9, 0.95))
+	var vision: Node = battlefield.vision
+	if vision != null and vision.enabled:
+		draw_texture_rect(vision.texture(), r, false)
 	# Grid.
 	for i in range(1, 8):
 		var f := i / 8.0
@@ -74,7 +77,7 @@ func _draw() -> void:
 			draw_colored_polygon(PackedVector2Array([m + Vector2(0, -5), m + Vector2(5, 0), m + Vector2(0, 5), m + Vector2(-5, 0)]), dc)
 	for t in 2:
 		for u: Unit in battlefield.units[t]:
-			if not is_instance_valid(u):
+			if not is_instance_valid(u) or not u.visible:
 				continue
 			var col := UI.COALITION if t == 0 else UI.IRAN
 			if u.selected:
