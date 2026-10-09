@@ -116,11 +116,16 @@ func _draw_card(id: String, r: Rect2, now: float) -> void:
 		var h := r.size.y * (1.0 - prog)
 		draw_rect(Rect2(r.position, Vector2(r.size.x, h)), Color(0, 0, 0, 0.55))
 		draw_line(r.position + Vector2(0, h), r.position + Vector2(r.size.x, h), Color(UI.ACCENT, 0.9), 1.5)
-		draw_string(UI.mono_font(), r.position + Vector2(0, r.size.y * 0.5 + 2), "%d%%" % int(prog * 100.0), HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 15, UI.TEXT)
 	# Name strip.
 	draw_rect(Rect2(r.position + Vector2(0, r.size.y - 18), Vector2(r.size.x, 18)), Color(0, 0, 0, 0.5))
 	draw_string(UI.bold_font(), r.position + Vector2(5, r.size.y - 4), _short(def), HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 10, 13, UI.TEXT if affordable or q > 0 else UI.DIM)
-	draw_string(UI.mono_font(), r.position + Vector2(0, 14), "%d" % cost, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 5, 12, Color(1.0, 0.82, 0.38) if affordable else UI.DANGER)
+	if q > 0 and prog > 0.0:
+		# Build progress replaces the price while the card is building.
+		var tag := Rect2(r.position + Vector2(r.size.x - 40, 3), Vector2(37, 16))
+		draw_rect(tag, Color(0, 0, 0, 0.8))
+		draw_string(UI.mono_font(), tag.position + Vector2(0, 13), "%d%%" % int(prog * 100.0), HORIZONTAL_ALIGNMENT_CENTER, tag.size.x, 13, UI.ACCENT)
+	else:
+		draw_string(UI.mono_font(), r.position + Vector2(0, 14), "%d" % cost, HORIZONTAL_ALIGNMENT_RIGHT, r.size.x - 5, 12, Color(1.0, 0.82, 0.38) if affordable else UI.DANGER)
 	if q > 0:
 		var badge := Rect2(r.position + Vector2(3, 3), Vector2(24, 16))
 		draw_rect(badge, UI.ACCENT)
@@ -155,7 +160,7 @@ func _draw_info() -> void:
 
 
 func _short(def: Dictionary) -> String:
-	return String(def["display"]).replace("-class", "").replace(" Air Defence", " AD")
+	return String(def["display"]).replace("-class", "").replace(" Air Defence", " AD").replace("Mk VI ", "")
 
 
 ## 12345 -> "12,345"

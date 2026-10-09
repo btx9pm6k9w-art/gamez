@@ -10,7 +10,7 @@ const Icons := preload("res://scripts/ui/unit_icons.gd")
 
 const W := 400.0
 const H := 140.0
-const TILE := 44.0
+const TILE := 42.0
 
 var selection: SelectionManager
 var _tiles: Array[Dictionary] = [] # {rect, unit}
@@ -96,18 +96,26 @@ func _draw_single(units: Array[Unit]) -> void:
 	draw_string(UI.text_font(), Vector2(x + 110, 82), "%s  |  %s armour" % [weapon.replace("_", " ").capitalize(), armor.capitalize()], HORIZONTAL_ALIGNMENT_LEFT, w - 110, 13, UI.DIM)
 	var strong: Array[String] = []
 	var weak: Array[String] = []
+	var blind: Array[String] = []
 	if UnitDefs.VS_ARMOR.has(weapon):
 		var table: Dictionary = UnitDefs.VS_ARMOR[weapon]
 		for cls: String in table:
 			var m: float = table[cls]
 			if m >= 1.2:
 				strong.append(cls)
+			elif m <= 0.0:
+				blind.append(cls)
 			elif m <= 0.4:
 				weak.append(cls)
 	if not strong.is_empty():
 		draw_string(UI.text_font(), Vector2(x, 104), "Strong vs " + ", ".join(strong), HORIZONTAL_ALIGNMENT_LEFT, w, 14, UI.GOOD)
+	var limits := ""
 	if not weak.is_empty():
-		draw_string(UI.text_font(), Vector2(x, 124), "Weak vs " + ", ".join(weak), HORIZONTAL_ALIGNMENT_LEFT, w, 14, Color(UI.DANGER, 0.9))
+		limits = "Weak vs " + ", ".join(weak)
+	if not blind.is_empty():
+		limits += ("   " if limits != "" else "") + "Can't hit " + ", ".join(blind)
+	if limits != "":
+		draw_string(UI.text_font(), Vector2(x, 124), limits, HORIZONTAL_ALIGNMENT_LEFT, w, 14, Color(UI.DANGER, 0.9))
 	var state_text := ""
 	if u.hold:
 		state_text = "HOLDING"
@@ -120,17 +128,17 @@ func _draw_single(units: Array[Unit]) -> void:
 
 
 func _draw_group(units: Array[Unit]) -> void:
-	UI.draw_header(self, Vector2(12, 6), size.x - 24, "%d units selected" % units.size())
 	var cols := int((size.x - 24) / (TILE + 4))
 	var shown := mini(units.size(), cols * 2)
+	UI.draw_header(self, Vector2(12, 6), size.x - 24, "%d units selected" % units.size())
+	if units.size() > shown:
+		draw_string(UI.text_font(), Vector2(12, 20), "+%d more" % (units.size() - shown), HORIZONTAL_ALIGNMENT_RIGHT, size.x - 24, 13, UI.DIM)
 	for i in shown:
 		var u := units[i]
-		var r := Rect2(Vector2(12 + (i % cols) * (TILE + 4), 36 + (i / cols) * (TILE + 10)), Vector2(TILE, TILE))
+		var r := Rect2(Vector2(12 + (i % cols) * (TILE + 4), 32 + (i / cols) * (TILE + 8)), Vector2(TILE, TILE))
 		_portrait(r, u, false)
 		_hp_bar(Rect2(Vector2(r.position.x, r.end.y + 2), Vector2(TILE, 4)), clampf(u.hp / u.max_hp, 0.0, 1.0), 1)
 		_tiles.append({"rect": r, "unit": u})
-	if units.size() > shown:
-		draw_string(UI.text_font(), Vector2(12, size.y - 8), "+%d more" % (units.size() - shown), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, UI.DIM)
 
 
 func _gui_input(event: InputEvent) -> void:

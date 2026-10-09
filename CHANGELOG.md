@@ -5,6 +5,17 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-09
 
+### UI fixes from the Mac screenshots
+- Main menu and briefing now fill the window (they kept an empty size once in
+  the tree), so the briefing is centred and the menu dims the map behind it.
+  Menu buttons are solid panels and the tagline has an outline.
+- Sidebar: build progress shows as a tag in the corner instead of over the
+  silhouette; "Patrol Boat" no longer clips.
+- Unit card: "+N more" moved to the header so it no longer covers portraits;
+  "Can't hit air" is shown apart from real weaknesses.
+- Merged the Mac's performance pass 2 with the decoded terrain normals: sand
+  uses one top-down normal sample, rock keeps triplanar where it shows.
+
 ### UI tour for screenshots (from the Mac)
 - `scripts/dev/ui_tour.gd`: `-- --ui-tour=/some/folder` walks the main menu, briefing
   and in-game HUD states (selection, mixed selection, build queue, strike armed,

@@ -14,7 +14,9 @@ var _hdr: Button
 
 
 func _ready() -> void:
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	# Offsets too: plain set_anchors_preset() keeps the current (empty) size
+	# once the node is in the tree.
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	var shade := Control.new()
 	shade.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -63,7 +65,9 @@ func _ready() -> void:
 	tag.text = "Coalition command. Hold the Strait. Find out who is really pulling the strings."
 	tag.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	tag.add_theme_font_size_override("font_size", 17)
-	tag.add_theme_color_override("font_color", UI.DIM)
+	tag.add_theme_color_override("font_color", UI.TEXT)
+	tag.add_theme_constant_override("outline_size", 6)
+	tag.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.6))
 	col.add_child(tag)
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0, 24)
@@ -103,8 +107,11 @@ func _add(parent: Control, text: String, hint: String, action: Callable, primary
 	b.add_theme_font_override("font", UI.header_font())
 	b.add_theme_font_size_override("font_size", 20 if primary else 16)
 	if primary:
-		b.add_theme_stylebox_override("normal", UI.panel_box(Color(UI.ACCENT, 0.16), UI.ACCENT, 4))
-		b.add_theme_stylebox_override("hover", UI.panel_box(Color(UI.ACCENT, 0.3), UI.ACCENT, 4))
+		b.add_theme_stylebox_override("normal", UI.panel_box(Color(0.03, 0.16, 0.22, 0.95), UI.ACCENT, 4))
+		b.add_theme_stylebox_override("hover", UI.panel_box(Color(0.05, 0.25, 0.33, 0.97), UI.ACCENT, 4))
+	else:
+		b.add_theme_stylebox_override("normal", UI.panel_box(UI.PANEL_SOLID, UI.ACCENT_DIM, 3))
+		b.add_theme_stylebox_override("hover", UI.panel_box(Color(0.06, 0.13, 0.18, 0.97), UI.ACCENT, 3))
 	b.tooltip_text = hint
 	b.pressed.connect(func() -> void:
 		Audio.play_ui("ui_confirm")
