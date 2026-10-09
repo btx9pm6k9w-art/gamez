@@ -5,6 +5,20 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-09
 
+### Strategy: counter system, anti-tank teams, multi-direction attacks
+- Counter system: every unit has an armour class (infantry, light, heavy,
+  naval, air) and every weapon a multiplier against it (`UnitDefs.VS_ARMOR`).
+  Rifles beat infantry, anti-tank missiles and cannons beat armour,
+  autocannons beat light vehicles and boats, lasers beat drones.
+- New units: Coalition Javelin Team (buildable, 300) and IRGC RPG Team, firing
+  slow lofted anti-tank missiles with smoke trails.
+- Enemy waves rotate between three entry points (mountains, desert, ridge) and
+  the HUD names the direction; on Elite each wave splits and attacks from two
+  sides. Garrisons, waves and counter-attacks now include RPG teams.
+- Design doc: "Strategy: how battles are won" and a mission guide for all 10
+  missions (map, win and lose, enemy plan, how to win, reward). Campaign
+  mission 4 renamed Port Assault, since Beachhead is now mission 1.
+
 ### Mission 1, objectives, oil economy and reinforcements
 - The skirmish is now **Mission 1 "Beachhead"** with a briefing (situation typed
   out over the paused map, objectives, field notes, difficulty: Recruit, Veteran,

@@ -11,9 +11,16 @@ extends Node
 signal wave_incoming(index: int, total: int)
 
 const WAVES := [
-	["karrar", "irgc", "irgc", "irgc"],
-	["karrar", "karrar", "irgc", "irgc", "irgc", "irgc"],
-	["karrar", "karrar", "karrar", "irgc", "irgc", "irgc", "irgc", "irgc"],
+	["karrar", "irgc", "irgc", "irgc_rpg"],
+	["karrar", "karrar", "irgc", "irgc", "irgc_rpg", "irgc_rpg"],
+	["karrar", "karrar", "karrar", "irgc", "irgc", "irgc", "irgc_rpg", "irgc_rpg"],
+]
+## Where waves can come from, with the name the HUD announces. Points that
+## turn out to be off the land are skipped, so map edits cannot break waves.
+const ENTRIES := [
+	[Vector3(150, 0, 44), "the mountains to the north-east"],
+	[Vector3(184, 0, 118), "the desert to the east"],
+	[Vector3(112, 0, 8), "the ridge to the north"],
 ]
 const BOAT_SWARM := [0, 3, 4] # fast boats added to each wave
 const SEA_SPAWN := Vector3(12, 0, 4)
@@ -28,6 +35,8 @@ var economy: Node
 var difficulty := 1
 var spawn_point := Vector3(150, 0, 44)
 var waves_sent := 0
+## Where the latest wave came from, for the HUD.
+var last_wave_from := "the mountains"
 
 var _wave_timer := FIRST_WAVE_DELAY
 var _think_timer := 1.0
@@ -62,10 +71,17 @@ func _send_wave() -> void:
 	elif difficulty == 2:
 		wave.append_array(["karrar", "irgc", "irgc"])
 	waves_sent += 1
+	# Waves rotate between entry points; on Elite each wave splits in two
+	# and hits from two sides at once.
+	var entries := _land_entries()
+	var first: Array = entries[(waves_sent - 1) % entries.size()]
+	var second: Array = entries[waves_sent % entries.size()] if difficulty == 2 and entries.size() > 1 else first
+	last_wave_from = first[1] if second == first else "%s and %s" % [first[1], second[1]]
 	wave_incoming.emit(waves_sent, WAVES.size())
 	var target := _player_center()
 	for i in wave.size():
-		var p := spawn_point + Vector3((i % 4) * 4.0 - 6.0, 0, (i / 4) * 5.0)
+		var entry: Vector3 = first[0] if i % 2 == 0 else second[0]
+		var p := entry + Vector3((i % 4) * 4.0 - 6.0, 0, (i / 4) * 5.0)
 		var u := battlefield.spawn_unit(wave[i], Battlefield.IRAN, p, PI * 0.75)
 		u.set_meta("wave", true)
 		u.order_move(target, true)
@@ -76,9 +92,19 @@ func _send_wave() -> void:
 		b.order_move(HARBOUR + Vector3(randf_range(-4, 4), 0, randf_range(-6, 6)), true)
 
 
+func _land_entries() -> Array:
+	var out := []
+	for e: Array in ENTRIES:
+		if battlefield.terrain.is_land(e[0]):
+			out.append(e)
+	if out.is_empty():
+		out.append([spawn_point, "the mountains"])
+	return out
+
+
 ## Send a strike group from the mountains at a place the player just took.
 func counter_attack(target: Vector3, size: int) -> void:
-	var kinds := ["karrar", "irgc", "irgc"]
+	var kinds := ["karrar", "irgc", "irgc_rpg", "irgc"]
 	for i in size:
 		var p := spawn_point + Vector3((i % 4) * 4.0 - 6.0, 0, (i / 4) * 5.0)
 		var u := battlefield.spawn_unit(kinds[i % kinds.size()], Battlefield.IRAN, p, PI * 0.75)

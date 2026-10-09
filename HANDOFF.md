@@ -32,9 +32,10 @@ startup).
 - **Map "Beachhead":** 192 x 192 m deformable terrain on the Strait of Hormuz
   with sea, an island with a lighthouse, an offshore rig, a mangrove creek, salt
   flats, a gravel wadi, an oasis village, a dune sea and an oil field.
-- **Units:** Coalition (Abrams-class tank, Ranger, K9 robot dog, laser air
-  defence, patrol boat) and Iran (Karrar-style tank, IRGC rifleman, Shahed-style
-  drone launcher and drones, fast attack craft).
+- **Units:** Coalition (Abrams-class tank, Ranger, Javelin team, K9 robot dog,
+  laser air defence, patrol boat) and Iran (Karrar-style tank, IRGC rifleman,
+  RPG team, Shahed-style drone launcher and drones, fast attack craft), with a
+  counter system of armour classes and weapon multipliers (`UnitDefs.VS_ARMOR`).
 - **Play:** Mission 1 "Beachhead" with briefing, objectives, debrief and three
   difficulties; oil derricks to capture for income; a C&C-style sidebar that
   buys reinforcements; classic RTS controls (edge scroll, A/S/H/P, Shift queue,
@@ -159,7 +160,8 @@ tools/                   setup and check scripts
    refinery and tanker trucks, factories with rally points.
 4. Fog of war, the commander hero unit and the remaining abilities.
 5. Real audio from the Sonniss GDC bundles. Log every asset in `docs/SOURCES.md`.
-6. Missions 2 and 3, then the rest of the campaign (see `docs/DESIGN.md`).
+6. Fog of war, then missions 2 and 3, then the rest of the campaign. Each
+   mission is specified in `docs/DESIGN.md` under "Mission guide".
    Add a new mission by extending `scripts/missions/mission.gd`.
 
 ## Open questions for the owner

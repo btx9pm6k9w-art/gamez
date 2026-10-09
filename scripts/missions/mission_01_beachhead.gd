@@ -29,6 +29,7 @@ func briefing() -> Dictionary:
 			"Drag to select, right click to move. A then click attack-moves.",
 			"Stand next to a derrick with no enemy nearby to capture it.",
 			"Spend credits in the sidebar on the right. Right click a unit there to cancel.",
+			"Mix your army: rifles beat infantry, Javelins and tanks beat armour, laser trucks stop drones.",
 			"F and G call the commander's strikes. Space jumps to the last alert.",
 		],
 	}
@@ -59,6 +60,8 @@ func _spawn_forces() -> void:
 	for k in 8:
 		battlefield.spawn_unit("ranger", c, Vector3(60 + (k % 4) * 2.5, 0, 157 + (k / 4) * 2.5), face_ne)
 	for k in 2:
+		battlefield.spawn_unit("javelin", c, Vector3(70 + k * 2.5, 0, 158), face_ne)
+	for k in 2:
 		battlefield.spawn_unit("k9", c, Vector3(76 + k * 3.0, 0, 154), face_ne)
 	for k in 2:
 		battlefield.spawn_unit("laser_ad", c, Vector3(58 + k * 10.0, 0, 166), face_ne)
@@ -69,7 +72,7 @@ func _spawn_forces() -> void:
 	var garrison := 6 + difficulty * 2
 	for k in garrison:
 		var a := TAU * k / float(garrison)
-		battlefield.spawn_unit("irgc", i, VILLAGE + Vector3(cos(a) * 6.0, 0, sin(a) * 6.0), face_sw)
+		battlefield.spawn_unit("irgc_rpg" if k % 3 == 0 else "irgc", i, VILLAGE + Vector3(cos(a) * 6.0, 0, sin(a) * 6.0), face_sw)
 	battlefield.spawn_unit("karrar", i, Vector3(108, 0, 92), face_sw)
 	if difficulty >= 1:
 		battlefield.spawn_unit("karrar", i, Vector3(92, 0, 108), face_sw)

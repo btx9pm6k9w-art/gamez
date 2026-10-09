@@ -137,7 +137,7 @@ func setup(bf: Battlefield, sel: SelectionManager, camera_rig: RTSCamera, p_ai: 
 	_minimap_tex = ImageTexture.create_from_image(bf.terrain.build_minimap_image())
 	VFX.flash_requested.connect(_on_flash)
 	ai.wave_incoming.connect(func(i: int, total: int) -> void:
-		show_message("Enemy wave %d of %d incoming from the mountains" % [i, total], WARN)
+		show_message("Enemy wave %d of %d incoming from %s" % [i, total, ai.last_wave_from], WARN)
 		UnitVoice.alert("wave", 0.0))
 	rig.setting_changed.connect(func(text: String) -> void: show_message(text, ACCENT, 2.0))
 	sel.alert_raised.connect(func(_pos: Vector3) -> void: show_message("Units under attack  (SPACE to jump there)", WARN, 3.0))

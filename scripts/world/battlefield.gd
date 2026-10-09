@@ -876,7 +876,7 @@ func find_target(seeker: Unit, radius: float) -> Unit:
 
 ## Explosion with splash damage, crater and prop destruction. team is the
 ## attacker's team (friendly units are spared); -1 hurts everyone.
-func blast(pos: Vector3, damage: float, splash: float, crater: float, team: int, fx_size: float) -> void:
+func blast(pos: Vector3, damage: float, splash: float, crater: float, team: int, fx_size: float, weapon := "") -> void:
 	if fx_size > 0.0:
 		VFX.explosion(pos, fx_size, VFX.Surface.GROUND if terrain.is_land(pos) else VFX.Surface.WATER)
 	if crater > 0.0 and terrain.is_land(pos):
@@ -893,7 +893,7 @@ func blast(pos: Vector3, damage: float, splash: float, crater: float, team: int,
 			if u.is_air and d > reach * 0.5:
 				continue
 			if d <= reach:
-				u.take_damage(damage * lerpf(1.0, 0.3, d / reach), team if team >= 0 else 1 - t)
+				u.take_damage(damage * lerpf(1.0, 0.3, d / reach), team if team >= 0 else 1 - t, weapon)
 	for prop in props:
 		if not prop["alive"]:
 			continue

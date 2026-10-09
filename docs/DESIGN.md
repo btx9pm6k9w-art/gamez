@@ -2,7 +2,7 @@
 Markdown copy of the living design document, kept in git so the project can be
 continued from any machine without access to claude.ai. Source of truth while
 the claude.ai doc exists: https://claude.ai/code/artifact/3b74b31f-13ee-4ce3-a532-29f824e41721
-Last synced: 2026-10-09 (doc revision 32). Re-export and overwrite this file
+Last synced: 2026-10-09 (doc revision 34). Re-export and overwrite this file
 whenever the doc changes; if the online doc is ever lost, this file becomes the
 source of truth.
 -->
@@ -185,7 +185,7 @@ The player commands the coalition. Difficulty ramps through AI tier, enemy incom
 | 1 | Tanker Alley | Strait of Hormuz, dawn | Escort tankers past fast boats and drone swarms | Selection, move, attack; Satellite Scan | 1 Scripted waves |
 | 2 | Al Dhafra | UAE air base under missile attack | Keep the interceptor batteries alive, rebuild the base | Base building, economy, interceptor cost | 1 Passive builder |
 | 3 | Swarm Night | Abu Dhabi coast, night | Survive waves of Shahed-style drones | Electronic warfare jammers; Drone Swarm ability | 2 Reactive |
-| 4 | Beachhead | Iranian coast near Bandar Abbas | Land, take the port, destroy the coastal missile batteries | Amphibious landing, destructible terrain | 2 Reactive + ambushes |
+| 4 | Port Assault | Iranian coast near Bandar Abbas | Land, take the port, destroy the coastal missile batteries | Amphibious landing, destructible terrain | 2 Reactive + ambushes |
 | 5 | Missile City | Zagros mountains, snow | Find and collapse an underground missile base | Hidden tunnel bases, bunker busters; Precision Strike | 3 Balanced builder |
 | 6 | Ghost Signal | Mountain valley, storm | Survive when ORACLE hijacks your drones | ORACLE reveal, three-way battle; EMP ability | 3 Balanced + ORACLE swarms |
 | 7 | Uneasy Truce | Iraqi border dam | Defend an Artesh garrison against ORACLE | Temporary alliance, shared base, ORACLE tech unlock | 4 Aggressive, multi-prong |
@@ -204,6 +204,127 @@ The player commands the coalition. Difficulty ramps through AI tier, enemy incom
 **Economy in the slice.** Until base building arrives, oil derricks are captured by standing next to them with no enemy near (5 seconds) and pay 8 credits a second each. A C&C-style sidebar sells reinforcements on three production lines (infantry, vehicles, naval), one unit at a time per line with a queue of six, paid up front and refunded on cancel. New units land at the pier and gather at a rally point. Prices: Ranger 150, K9 300, Patrol Boat 700, Laser AD 800, Abrams 900.
 
 **Difficulty in the slice.** Recruit: smaller garrison, waves two units smaller and 35% further apart. Veteran: as designed. Elite: bigger garrison, extra tanks and boats per wave, waves 20% closer together, one fewer starting tank, faster derrick raids.
+
+### Strategy: how battles are won
+
+Every mission should have at least two ways to win. The tools the player has for that:
+
+**Counter system (in the game now).** Each unit has an armour class and each weapon a multiplier against it, so the army mix matters more than its size.
+
+| Weapon | Infantry | Light (robot dogs, trucks) | Heavy (tanks) | Naval | Air (drones) |
+| --- | --- | --- | --- | --- | --- |
+| Rifle (Rangers, IRGC, K9) | 1.0 | 0.6 | 0.15 | 0.3 | 0.8 |
+| Tank cannon | 0.55 + splash | 1.2 | 1.0 | 1.0 | none |
+| Anti-tank missile (Javelin, RPG) | 0.25 | 1.3 | 1.6 | 1.2 | none |
+| Autocannon (boats) | 1.0 | 1.3 | 0.35 | 1.2 | 1.0 |
+| Laser (air defence) | 0.4 | 0.5 | 0.3 | 0.4 | 1.0 |
+
+In plain terms: rifles beat infantry, Javelins and tanks beat armour, tanks need infantry escort against RPG teams, boats shred light vehicles and other boats, and only laser trucks, rifles and boats can stop the Shahed drones.
+
+**Terrain.** High ground adds up to 25% range. Dunes slow vehicles to 60%. Craters from strikes change paths, and the wadi is a covered approach. Water is boat-only: a coastal flank is open to whoever owns the sea.
+
+**Commander powers.** Precision Strike (one target, crater) and Airstrike (a bomb line) on cooldowns. Later: Satellite Scan (reveal), Drone Swarm, EMP, Orbital Strike. Powers are the answer to a fortified position the army cannot crack alone.
+
+**Economy pressure.** Oil derricks fund reinforcements, so raiding the enemy's oil and protecting your own is a strategy in its own right. The AI raids derricks the player holds.
+
+**Fog of war (next).** Units see their vision radius; the rest of the map shows the last known state. Scouting with robot dogs and drones, ambushes in the wadi and hidden tunnel bases depend on it.
+
+**Enemy AI plan.** Waves rotate between entry points (mountains, desert, ridge) and on Elite split to hit from two sides at once. The AI counter-attacks places the player just took and raids held derricks. Later tiers scout the player's army and build its counter (tier 5).
+
+### Mission guide
+
+Each mission: the map, what wins and loses it, what the enemy does, and how to beat it. Rewards are doctrine points and one tech unlock, chosen from three cards after the debrief.
+
+**1. Beachhead / Tanker Alley (Musandam coast, dusk) - playable now.**
+
+- Map: pier and landing zone in the south-west, oasis village in the centre, oil field east, launch site in the north-east hills, sea and island to the west.
+- Win: take and hold the village; hold 2 of 3 derricks; destroy the Shahed launchers. Bonus: keep both patrol boats; finish inside 15 minutes. Later: escort two tankers along the coast past the island.
+- Lose: all ground forces lost with no money for more; or every derrick destroyed before you hold two.
+- Enemy: village garrison with RPG teams, three waves from rotating directions, a fast-boat swarm on the pier, a counter-attack on the village, derrick raids, drones from the launch site the whole time.
+- How to win: lead with Rangers and Javelins into the village while tanks give fire support from range; send two Rangers to the oil field early for income; park laser trucks behind the army against drones; keep patrol boats at the pier for the boat swarm; airstrike the launcher line rather than pushing tanks into the hills.
+- Reward: Satellite Scan, or +1 Javelin team per mission, or cheaper Rangers.
+
+**2. Al Dhafra (UAE air base, night under missile attack).**
+
+- Map: a base on open desert with runways, three interceptor batteries, a refinery and a road to the south.
+- Win: keep at least two interceptor batteries alive for 12 minutes; rebuild the base (construction yard, power, refinery, barracks). Bonus: lose no aircraft on the ramp.
+- Lose: all batteries lost, or the command centre destroyed.
+- Enemy: ballistic missile salvos on a visible timer, cruise missiles low across the dunes, Shahed swarms, a ground raid on the refinery at minute 8.
+- How to win: interceptors cost money per shot, so spend on refinery and power first; layer cheap lasers for drones and save interceptors for ballistic missiles; keep a tank reserve for the refinery raid.
+- Introduces base building, power and interceptor economy. Reward: Patriot-style battery upgrade or laser range.
+
+**3. Swarm Night (Abu Dhabi coast, night).**
+
+- Map: city outskirts on the shore, a power station, a desalination plant and a hospital to protect.
+- Win: survive 6 drone waves; destroy the two mobile launch trucks hiding in the dunes. Bonus: the hospital takes no damage.
+- Lose: the power station falls (the city goes dark).
+- Enemy: drone waves from the sea and from inland at once; decoy drones; launchers relocate after each wave.
+- How to win: jammers create no-drone zones over the key buildings; robot dogs hunt the launchers between waves; save the Drone Swarm ability for the last wave.
+- Introduces jammers (electronic warfare). Reward: Drone Swarm ability.
+
+**4. Port Assault (Iranian coast near Bandar Abbas, dawn).**
+
+- Map: an amphibious landing beach, a fortified port with coastal missile batteries, a town behind it.
+- Win: land, take the port, destroy four coastal missile batteries. Bonus: capture the port cranes intact for faster reinforcements.
+- Lose: the landing force is wiped out before the port is taken.
+- Enemy: minefields on the beach, bunkers with RPG teams, fast boats, artillery on the ridge that shells the beach.
+- How to win: precision strike the ridge artillery before landing; boats clear the fast attack craft; Javelins and tanks take the bunkers; destructible terrain opens a second route through the town.
+- Reward: amphibious vehicles or naval gunfire support.
+
+**5. Missile City (Zagros mountains, snow).**
+
+- Map: mountain valleys, a hidden underground missile base, three tunnel entrances, radar sites on peaks.
+- Win: find the base (it is hidden in the fog of war); destroy its three tunnel entrances with bunker busters or precision strikes; destroy the radar sites. Bonus: do it before the next launch timer ends.
+- Lose: the timer reaches zero three times (three missiles fly).
+- Enemy: AI tier 3 builds and expands; SAM sites deny air; mobile launchers relocate.
+- How to win: scout with robot dogs and drones, kill the radar to blind the SAMs, then use air and strikes on the tunnels; or push a heavy ground column through the valley.
+- Reward: Precision Strike upgrade (bunker buster).
+
+**6. Ghost Signal (mountain valley, storm).**
+
+- Map: a Coalition forward base cut off in a valley, an Iranian garrison across the river, ORACLE drone factories appearing on the ridges.
+- Win: survive when ORACLE hijacks your drones at minute 5; destroy the ORACLE relay; reach the extraction point with the commander. Bonus: no friendly units hijacked.
+- Lose: the commander dies.
+- Enemy: three-way battle; ORACLE turns any drone in range against its owner; Iran attacks whoever is closer.
+- How to win: ground units only once the hijack starts; EMP clears drone clusters; let Iran and ORACLE fight each other.
+- Reward: EMP ability.
+
+**7. Uneasy Truce (Iraqi border dam).**
+
+- Map: a dam with an Artesh (Iranian army) garrison, the player's base downstream, ORACLE attacking from the north.
+- Win: defend the dam with the former enemy for 15 minutes; then destroy ORACLE's forward data centre. Bonus: keep the Artesh commander alive.
+- Lose: the dam breaks (floods the player's base).
+- Enemy: ORACLE attacks on several fronts with self-repairing robots; humanoid robots climb the dam.
+- How to win: share the base and let the Artesh hold the north; mass anti-armour against autonomous tanks; target the data centre that powers the self-repair.
+- Reward: ORACLE tech unlock (captured humanoid robot).
+
+**8. Sandstorm (Saudi desert oil field).**
+
+- Map: four oil platforms in open desert, a sandstorm that sweeps across every few minutes.
+- Win: hold all four platforms for 20 minutes; at least two must survive. Bonus: no platform catches fire.
+- Lose: three platforms lost.
+- Enemy: AI tier 4 attacks on several fronts during the storm when air is grounded; burning oil fires spread.
+- How to win: build ground defences before each storm; use the storm yourself to move unseen; firefighting trucks save platforms.
+- Reward: weather radar (see through storms).
+
+**9. Kazemi's Last Stand (Kharg Island oil terminal).**
+
+- Map: an island terminal with launch silos, a causeway, and the sea around it.
+- Win: stop the final salvo by destroying five silos before the countdown; capture the terminal. Bonus: the terminal intact.
+- Lose: the countdown ends.
+- Enemy: tier 5 adaptive AI scouts the player's army and builds counters; missile duel at full scale.
+- How to win: switch army composition when the AI counters it; boats and amphibious units flank across the water while tanks hold the causeway; AI co-pilot runs a diversion.
+- Reward: Orbital Strike.
+
+**10. Fracture Line (Abu Musa island, ORACLE's core).**
+
+- Map: the island data centre, map-wide destruction, three approaches.
+- Win: choose an ally (Iran's army or ORACLE's defected subsystem), then shut down the core. Two endings.
+- Lose: the core finishes its upload.
+- Enemy: everything at once; Elite difficulty lets the AI cheat on income.
+- How to win: all systems together: counter mix, strikes, jamming, flanking by sea.
+
+**Tech between missions.** After each debrief the player picks 1 of 3 doctrine cards (for example Satellite Scan, cheaper Rangers, laser range). Captured enemy tech joins the roster. Unlocks carry through the campaign and are saved in the player's profile.
 
 ## Terrain and map design
 

@@ -527,18 +527,24 @@ func _fire() -> void:
 				tw.tween_property(turret, "position:z", turret.position.z, 0.4)
 			var miss := Vector3(randf_range(-1, 1), 0, randf_range(-1, 1)) * (1.5 if target.state != State.IDLE else 0.5)
 			Projectile.launch(get_parent(), from, aim + miss, 110.0, 0.02,
-				Callable(battlefield, "blast").bind(float(def["damage"]), float(def["splash"]), float(def["crater"]), team, 0.9))
+				Callable(battlefield, "blast").bind(float(def["damage"]), float(def["splash"]), float(def["crater"]), team, 0.9, "cannon"))
 		"rifle":
 			VFX.muzzle_flash(from, 0.35, aim - from)
 			var hit := randf() < 0.8
 			var end := aim + (Vector3.ZERO if hit else Vector3(randf_range(-1.5, 1.5), randf_range(-0.5, 1.0), randf_range(-1.5, 1.5)))
 			VFX.tracer(from, end)
 			if hit:
-				target.take_damage(def["damage"], team)
+				target.take_damage(def["damage"], team, "rifle")
 				VFX.impact(end)
 		"laser":
 			VFX.laser(from, aim)
-			target.take_damage(def["damage"], team)
+			target.take_damage(def["damage"], team, "laser")
+		"atgm":
+			# Shoulder-fired anti-tank missile: slow, lofted, smoky.
+			VFX.muzzle_flash(from, 0.7, aim - from)
+			var m := Projectile.launch(get_parent(), from, aim, 42.0, 0.09,
+				Callable(battlefield, "blast").bind(float(def["damage"]), float(def["splash"]), float(def["crater"]), team, 0.7, "atgm"))
+			m.add_child(VFX.make_trail(0.45))
 		"autocannon":
 			# Three-round burst of small explosive shells.
 			for k in 3:
@@ -551,7 +557,7 @@ func _fire() -> void:
 					VFX.muzzle_flash(f, 0.5, hit_point - f)
 					VFX.tracer(f, hit_point, Color(5.0, 3.0, 1.2), 0.09, 0.08)
 					VFX.small_hit(hit_point, battlefield.terrain.is_land(hit_point) or hit_point.y > 0.8)
-					battlefield.blast(hit_point, float(def["damage"]), float(def["splash"]), 0.0, team, 0.0))
+					battlefield.blast(hit_point, float(def["damage"]), float(def["splash"]), 0.0, team, 0.0, "autocannon"))
 		"drone_launch":
 			VFX.muzzle_flash(from, 1.0, Vector3.UP)
 			var drone: Unit = battlefield.spawn_unit("shahed", team, from)
@@ -581,10 +587,10 @@ func _process_drone(delta: float) -> void:
 		queue_free()
 
 
-func take_damage(amount: float, from_team: int) -> void:
+func take_damage(amount: float, from_team: int, weapon := "") -> void:
 	if not _alive or from_team == team:
 		return
-	hp -= amount
+	hp -= amount * UnitDefs.modifier(weapon, def.get("armor", ""))
 	last_hit_time = Time.get_ticks_msec() / 1000.0
 	if hp <= 0.0:
 		_die()
