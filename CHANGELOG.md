@@ -5,6 +5,11 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-09
 
+### Public repo
+- Confirmed the repo is public. Added `LICENSE` (all rights reserved; third-party
+  licences in `docs/SOURCES.md`). Scanned the history for secrets and personal
+  data and found none.
+
 ### Continuity and handoff
 - Added `HANDOFF.md` (state, setup on Mac and Windows, controls, code map, next
   steps, open questions), this changelog, `docs/DECISIONS.md`,

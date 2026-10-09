@@ -23,3 +23,4 @@ deleting it.
 | 15 | 2026-10-09 | Varied terrain and naval play: sea, creek, island, salt flat, wadi, dunes, oil field, boats; terrain affects tactics | Owner asked for diverse, creative battlefields | Owner |
 | 16 | 2026-10-09 | Continuity: everything (code, design doc copy, decisions, changelog, handoff, setup scripts) lives in git so work can continue from any platform | Owner requirement | Owner |
 | 17 | 2026-10-09 | Economy resource is oil (tanker trucks, refineries), not a fictional crystal | Fits the Gulf setting | Claude, accepted |
+| 18 | 2026-10-09 | The repo stays public; licence is "all rights reserved" (LICENSE), with third-party licences in docs/SOURCES.md. Only redistributable assets get committed, and no secrets or personal data | Owner wants easy access from any platform. Without an open licence, a public repo still keeps the game's rights with the owner. Switching to MIT later is easy | Owner (public); Claude (licence default) |

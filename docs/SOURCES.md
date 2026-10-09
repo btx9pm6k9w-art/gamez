@@ -1,7 +1,10 @@
 # Sources and licences
 
 Every third-party asset, piece of code or tool the game ships with or was built
-from gets a row here before it lands in the repo.
+from gets a row here before it lands in the repo. The repo is public, so only
+assets whose licence allows redistribution (CC0, CC-BY with credit, MIT and
+similar) may be committed. Paid or restricted assets stay out of git and are
+listed here with where to get them. Never commit secrets, keys or personal data.
 
 ## In the repo today
 

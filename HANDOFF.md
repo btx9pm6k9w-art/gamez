@@ -16,7 +16,7 @@ Last updated: 2026-10-09
 | Design document | `docs/DESIGN.md` (Markdown copy, in git) and the live Claude Doc https://claude.ai/code/artifact/3b74b31f-13ee-4ce3-a532-29f824e41721 |
 | Decisions and why | `docs/DECISIONS.md` |
 | History of changes | `CHANGELOG.md` and `git log` |
-| Third-party sources and licences | `docs/SOURCES.md` |
+| Third-party sources and licences | `docs/SOURCES.md`; project licence in `LICENSE` (all rights reserved, public repo) |
 | Setup and check scripts | `tools/` |
 
 Nothing needed to continue lives only in a chat. If the claude.ai project is
@@ -139,7 +139,6 @@ tools/                   setup and check scripts
 
 ## Open questions for the owner
 
-- The GitHub repo is public. Should it be private?
 - Godot 4.7 must be installed on the Mac before the first run.
 - Budget and timing for the commissioned score and voice actors.
 

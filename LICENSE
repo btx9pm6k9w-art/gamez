@@ -1,0 +1,9 @@
+Copyright (c) 2026 Ahmed ElShinnawy. All rights reserved.
+
+This repository is public so the owner can work on it from any machine. Its
+source code, shaders, documents and generated content are not licensed for
+reuse, redistribution or commercial use without the owner's written
+permission. Viewing and cloning for personal evaluation is permitted.
+
+Third-party components keep their own licences; see docs/SOURCES.md. The Godot
+Engine is MIT licensed (https://godotengine.org/license).
