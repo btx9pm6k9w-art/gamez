@@ -5,6 +5,37 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-09
 
+### UI overhaul: tactical-glass HUD, sidebar, briefing and main menu
+- Art and UI direction added to the design doc (`docs/DESIGN.md`).
+- **One visual language** (`scripts/ui/ui_theme.gd`): dark translucent glass
+  panels with a cyan accent edge, Rajdhani for text and headers, Share Tech
+  Mono for numbers, fixed colours for each faction and for good, warning and
+  danger. Applied to every Control through a theme.
+- **HUD rebuilt from components:** a thin top bar (mission, mission clock,
+  force balance, waves, time of day, preset, fps); an objective tracker
+  (diamond = primary, circle = bonus, flashes on change); an event feed that
+  slides notices in and fades them; a selection card with unit silhouette
+  portraits, segmented health, weapon, armour and what the unit is strong and
+  weak against (or a portrait grid for mixed selections, click to narrow); a
+  command bar with the two commander powers (cooldown sweep, ready pulse,
+  hotkey badges) and the attack-move, stop, hold and patrol orders; a tactical
+  map with a grid, radar sweep, derrick markers, unit blips and the camera
+  footprint; and a centre banner with a subtitle for big moments only.
+- **In-world overlay:** segmented health bars, a corner-bracket selection box,
+  oil-derrick capture bars, and a spinning targeting reticle labelled with the
+  armed order.
+- **Sidebar** is now a grid of build cards with unit silhouettes, cost, a
+  queue badge and a shutter that lifts as the unit is built, a credits ticker
+  with thousands separators, and a details strip for the hovered unit.
+- **Briefing and debrief** use two columns (situation typed out on the left,
+  objectives and field notes on the right), a classified header strip, the
+  same objective icons as in game, and a highlighted Begin button.
+- **Main menu** over the live battlefield with a slowly circling camera:
+  Campaign, Unit showcase, Graphics preset, HDR and Quit. Shown at launch only;
+  restarts go straight to the briefing. The AI, economy and orders wait until
+  the mission starts. `RTSCamera.cinematic` drives the orbit.
+- Fonts are SIL OFL, logged in `docs/SOURCES.md`.
+
 ### Fixes after the Mac's art-pass run
 - Draw calls: SetDressing props (ghaf trees, mangroves, pillars, pier,
   containers, dhows, ships, rig, lighthouse, pumpjacks) now merge their static

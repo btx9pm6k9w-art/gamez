@@ -41,6 +41,10 @@ startup).
   buys reinforcements; classic RTS controls (edge scroll, A/S/H/P, Shift queue,
   Space to alerts); Precision Strike (F) and Airstrike (G); enemy waves with a
   boat swarm, counter-attacks and derrick raids.
+- **UI:** "tactical glass" style (`scripts/ui/ui_theme.gd`): main menu over
+  the live map, two-column briefing, top bar, objective tracker, event feed,
+  selection card with portraits and counters, command bar with cooldowns,
+  radar minimap, build-card sidebar. Not yet seen on the Mac (2026-10-09).
 - **Graphics:** SDFGI, SSIL, SSR, SSAO, volumetric fog, glow, AgX, HDR output on
   XDR Macs, MetalFX, four presets (F1 to F4), layered film-style VFX.
 - **Audio:** buses with limiter, reverb and sidechain ducking; 3D SFX; adaptive
@@ -123,7 +127,7 @@ headless to catch script and shader compile errors.
 | F7 | VFX showcase (free airstrike at the camera) |
 | T | Time of day |
 | F1 to F4, F5, F11 | Quality preset, HDR toggle, fullscreen |
-| F6, F10 or ? | Restart, show or hide help |
+| F6, F10 or ? | Restart (skips the main menu), show or hide help |
 
 ## Code map
 
@@ -141,7 +145,9 @@ scripts/missions/        Mission base (objectives, briefing data), Mission 1
 scripts/game/            Economy (oil derricks, credits, production queues)
 scripts/control/         RTSCamera, SelectionManager (orders, Precision Strike)
 scripts/ai/              SimpleAI (waves, boat swarm, counter-attacks)
-scripts/ui/              HUD, minimap, objectives, sidebar, briefing/debrief
+scripts/ui/              ui_theme (colours, fonts, panels), HUD and its parts
+                         (minimap, objective_panel, unit_card, ability_bar,
+                         alert_feed, unit_icons), sidebar, briefing, main_menu
 scripts/audio/           Audio manager and SoundSynth (procedural sounds and music)
 scripts/data/            UnitDefs (stats and display names)
 shaders/                 terrain, water, post-process; shaders/vfx/ smoke, fire,

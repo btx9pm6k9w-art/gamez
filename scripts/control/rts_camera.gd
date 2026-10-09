@@ -24,6 +24,11 @@ var lock_mouse := true
 var edge_margin := 0.012
 ## Player scroll speed multiplier, changed with - and = in game.
 var scroll_speed := 1.0
+## Main menu backdrop: the camera slowly circles and ignores player input.
+var cinematic := false:
+	set(v):
+		cinematic = v
+		_apply_mouse_lock()
 
 var _dist := 55.0
 var _dist_target := 55.0
@@ -69,6 +74,8 @@ func _on_shake(strength: float, origin: Vector3) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if cinematic:
+		return
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_WHEEL_UP and mb.pressed:
@@ -115,7 +122,9 @@ func _notification(what: int) -> void:
 
 
 func _apply_mouse_lock() -> void:
-	if lock_mouse and _focused:
+	if not is_inside_tree():
+		return
+	if lock_mouse and _focused and not cinematic:
 		Input.mouse_mode = Input.MOUSE_MODE_CONFINED
 	else:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
@@ -158,10 +167,15 @@ func _pan(screen_delta: Vector2) -> void:
 
 
 func _process(delta: float) -> void:
+	if cinematic:
+		_yaw_target += delta * 0.04
+		_yaw = _yaw_target
+		_dist_target = 62.0
 	var move := Vector2.ZERO
-	move.x = Input.get_axis("cam_left", "cam_right")
-	move.y = Input.get_axis("cam_forward", "cam_back")
-	if edge_pan and _focused and DisplayServer.window_is_focused() and not _dragging:
+	if not cinematic:
+		move.x = Input.get_axis("cam_left", "cam_right")
+		move.y = Input.get_axis("cam_forward", "cam_back")
+	if not cinematic and edge_pan and _focused and DisplayServer.window_is_focused() and not _dragging:
 		var e := _edge_vector()
 		if e != Vector2.ZERO:
 			_edge_time += delta

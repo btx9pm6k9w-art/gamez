@@ -403,6 +403,39 @@ The game picks a preset on first launch from the GPU name and VRAM and the playe
 
 **Lean assets.** No large binaries in git: units and props use procedural or low-poly meshes with tiling PBR textures at 1K (2K for hero assets), stored as compressed .ktx/.webp. Big source art lives outside the repo; Git LFS only if it becomes necessary.
 
+## Art and UI direction
+
+Studied: C&C Remastered (crisp sidebar, readable units at any zoom), Tempest Rising (modern military HUD, strong faction colour), Generals (bright Gulf light, chunky silhouettes, generals' powers bar), Iron Harvest (painterly lighting and haze, tilt-shift depth) and Stormgate (clean flat icons, high contrast). The common thread: the battlefield is calm and slightly desaturated so units, effects and UI pop against it.
+
+### World look
+
+- **Silhouette first.** Every unit must be identifiable by shape at full zoom-out: tanks long and low with a big turret, infantry tall and thin, robots angular, boats with a wake. Faction colour sits on the largest flat surfaces, plus a team ring under each unit.
+- **Faction colours.** Coalition steel blue (0.35, 0.7, 1.0); Iran signal red (1.0, 0.38, 0.3); ORACLE white with a cold green glow. The terrain never uses saturated blue or red.
+- **Contrast.** Ground is mid-value and low saturation (sand, rock, salt); units are a step darker with bright rim light and faction colour, so they pop. Explosions and lasers are the brightest things on screen.
+- **Grade per time of day.** Midday: neutral white sun, light blue haze, deep shadows (Generals). Golden hour: warm key light with cool blue shadows, never an overall orange cast. Night: blue moonlight, sodium lamps, muzzle flashes and fires as the main light. AgX tonemapping, mild contrast curve, slight vignette.
+- **Depth.** Aerial haze increases with distance, volumetric fog low over the sea and creek, and a subtle tilt-shift blur at the screen top and bottom when zoomed in.
+
+### UI style: tactical glass
+
+- **Panels:** dark blue-black glass (about 80% opaque) with a thin cyan edge and a cyan accent bar on the left. No rounded cartoon shapes.
+- **Type:** Rajdhani for text and spaced capital headers, Share Tech Mono for numbers and timers. Sizes are set for a 1080-pixel-tall window and scale up on Retina.
+- **Colour roles:** cyan for interface and the player, amber for warnings and armed orders, red for danger and the enemy, green for success and health.
+- **Icons:** vector silhouettes drawn in code, so they stay sharp at any resolution and match the 3D unit shapes.
+- **Motion:** notices slide in and fade, banners scale in, ready powers pulse, build cards lift a shutter as they progress. Every click gets a sound.
+
+### Screen layout
+
+- **Top bar:** mission name, mission clock, force balance (coalition against Iran), waves left, time of day, preset and fps.
+- **Top left:** objective tracker (diamond = primary, circle = bonus, with progress). **Left edge:** event feed (captures, reinforcements, alerts). **Centre top:** banner for big moments only.
+- **Right:** command sidebar with credits, income and build cards grouped by production line, then the rally point button and details of the hovered unit.
+- **Bottom left:** selection card with portrait, health, weapon, armour and counters, or a portrait grid for mixed selections. **Bottom centre:** command bar with commander powers (cooldown sweep) and orders. **Bottom right:** tactical map with radar sweep, derricks, units and camera footprint.
+- **In world:** health bars only when selected, hovered or recently hit; capture bars over derricks; a targeting reticle labelled with the armed order.
+- **Front end:** main menu over the live battlefield with an orbiting camera; two-column briefing (situation, objectives and field notes) with difficulty cards; after-action debrief.
+
+### Still to do
+
+Veterancy chevrons on cards and over units; unit portraits rendered from the 3D models; a campaign map of the Gulf between missions; EVA-style recorded voice lines; colour-blind safe faction palette option.
+
 ## Visual effects
 
 Explosions are the payoff of every order the player gives, so they get film-style treatment. No effect is a single sprite. Each one is built in layers, the way AAA and film VFX artists do it, and every layer is a GPU particle system or shader that scales with the quality preset.

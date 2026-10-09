@@ -51,6 +51,17 @@ unmodified; recolouring and scaling happen in code at load time.
 | `sand_01_diff_1k.jpg`, `sand_01_nor_1k.jpg` | [Sand 01](https://polyhaven.com/a/sand_01) | Poly Haven | CC0 1.0 |
 | `coast_sand_rocks_02_diff_1k.jpg`, `coast_sand_rocks_02_nor_1k.jpg` | [Coast Sand Rocks 02](https://polyhaven.com/a/coast_sand_rocks_02) | Poly Haven | CC0 1.0 |
 
+### Fonts (`assets/fonts/`)
+
+Downloaded from the [google/fonts](https://github.com/google/fonts) repository on
+2026-10-09, unmodified. The SIL Open Font License allows bundling and
+redistribution with the game; each licence text sits next to its font.
+
+| Files | Source | Author | Licence |
+| --- | --- | --- | --- |
+| `Rajdhani-SemiBold.ttf`, `Rajdhani-Bold.ttf` | [Rajdhani](https://fonts.google.com/specimen/Rajdhani) | Indian Type Foundry | SIL OFL 1.1 (`OFL-Rajdhani.txt`) |
+| `ShareTechMono-Regular.ttf` | [Share Tech Mono](https://fonts.google.com/specimen/Share+Tech+Mono) | Carrois Apostrophe | SIL OFL 1.1 (`OFL-ShareTechMono.txt`) |
+
 ## Engine and tools
 
 | Name | Licence | Use |

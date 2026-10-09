@@ -7,6 +7,7 @@ const Economy := preload("res://scripts/game/economy.gd")
 const Mission01 := preload("res://scripts/missions/mission_01_beachhead.gd")
 const Briefing := preload("res://scripts/ui/briefing.gd")
 const Sidebar := preload("res://scripts/ui/sidebar.gd")
+const MainMenu := preload("res://scripts/ui/main_menu.gd")
 
 const SEED := 2028
 
@@ -19,6 +20,9 @@ var economy: Economy
 var mission: Node
 var _overlay_layer: CanvasLayer
 static var _showcase_opened := false
+## The main menu shows on launch only; restarts (F6, Play again) go straight
+## to the briefing.
+static var _menu_seen := false
 
 
 func _ready() -> void:
@@ -58,12 +62,13 @@ func _ready() -> void:
 	hud.setup(battlefield, selection, rig, ai)
 
 	var sidebar := Sidebar.new()
-	sidebar.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	sidebar.offset_right = -16
-	sidebar.offset_top = 70
-	sidebar.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	hud.add_child(sidebar)
 	sidebar.setup(economy, selection)
+	sidebar.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	sidebar.offset_left = -sidebar.custom_minimum_size.x - 16
+	sidebar.offset_right = -16
+	sidebar.offset_top = 46
+	sidebar.offset_bottom = 46 + sidebar.custom_minimum_size.y
 
 	_overlay_layer = CanvasLayer.new()
 	_overlay_layer.layer = 5
@@ -79,18 +84,41 @@ func _ready() -> void:
 		_start_mission(1)
 		add_child(Benchmark.new())
 	else:
-		var briefing := Briefing.new()
-		_overlay_layer.add_child(briefing)
-		briefing.begin.connect(_start_mission)
-		briefing.show_briefing(mission.briefing(), mission.preview_objectives())
+		# Nothing fights until the mission starts; the HUD waits too.
+		for n: Node in [ai, economy, selection]:
+			n.process_mode = Node.PROCESS_MODE_DISABLED
+		hud.visible = false
+		if _menu_seen:
+			_show_briefing()
+		else:
+			_menu_seen = true
+			rig.cinematic = true
+			rig.focus_on(Vector3(96, 0, 120))
+			var menu := MainMenu.new()
+			_overlay_layer.add_child(menu)
+			menu.campaign.connect(_show_briefing)
+			menu.showcase.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/unit_showcase.tscn"))
+
+
+func _show_briefing() -> void:
+	rig.cinematic = false
+	rig.focus_on(Vector3(72, 0, 150))
+	var briefing := Briefing.new()
+	_overlay_layer.add_child(briefing)
+	briefing.begin.connect(_start_mission)
+	briefing.show_briefing(mission.briefing(), mission.preview_objectives())
 
 
 func _start_mission(difficulty: int) -> void:
+	for n: Node in [ai, economy, selection]:
+		n.process_mode = Node.PROCESS_MODE_INHERIT
+	hud.visible = true
 	mission.difficulty = difficulty
 	ai.difficulty = difficulty
 	mission.start(battlefield, economy, ai, hud)
 	hud.set_mission(mission, economy)
-	hud.show_message(mission.briefing().get("title", ""), HUD.ACCENT, 4.0)
+	var info: Dictionary = mission.briefing()
+	hud.show_message(String(info.get("title", "")), HUD.ACCENT, 4.0, String(info.get("place", "")))
 
 
 func _on_mission_ended(won: bool, summary: String) -> void:

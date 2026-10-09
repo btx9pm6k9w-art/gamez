@@ -112,34 +112,22 @@ func _unhandled_input(event: InputEvent) -> void:
 			_handle_group_key(k.keycode - KEY_0, k.ctrl_pressed or k.meta_pressed)
 			return
 		if event.is_action_pressed("order_stop"):
-			for s in _only_own(selected):
-				s.order_stop()
+			use_command("stop")
 		elif event.is_action_pressed("order_hold"):
-			for s in _only_own(selected):
-				s.order_hold()
-			if not _only_own(selected).is_empty():
-				Audio.play_ui("ui_confirm")
+			use_command("hold")
 		elif event.is_action_pressed("order_attack_move"):
-			_disarm()
-			attack_move_armed = not _only_own(selected).is_empty()
+			use_command("attack_move")
 		elif event.is_action_pressed("order_patrol"):
-			_disarm()
-			patrol_armed = not _only_own(selected).is_empty()
+			use_command("patrol")
 		elif event.is_action_pressed("jump_to_alert"):
 			if alert_pos != Vector3.INF:
 				rig.focus_on(alert_pos)
 		elif event.is_action_pressed("toggle_voices"):
 			UnitVoice.toggle()
 		elif event.is_action_pressed("ability_strike"):
-			strike_armed = strike_cooldown <= 0.0
-			airstrike_armed = false
-			if not strike_armed:
-				Audio.play_ui("ui_error")
+			use_command("strike")
 		elif event.is_action_pressed("ability_airstrike"):
-			airstrike_armed = airstrike_cooldown <= 0.0
-			strike_armed = false
-			if not airstrike_armed:
-				Audio.play_ui("ui_error")
+			use_command("airstrike")
 		elif event.is_action_pressed("vfx_showcase"):
 			var f := rig.get_focus()
 			f.y = battlefield.terrain.height_at(f)
@@ -150,6 +138,42 @@ func _unhandled_input(event: InputEvent) -> void:
 			battlefield.cycle_time_of_day()
 		elif event.is_action_pressed("cancel"):
 			_disarm()
+
+
+## One entry point for keys and the command bar.
+func use_command(id: String) -> void:
+	var own := _only_own(selected)
+	match id:
+		"strike":
+			var ok := strike_cooldown <= 0.0
+			_disarm()
+			strike_armed = ok
+			if not ok:
+				Audio.play_ui("ui_error")
+		"airstrike":
+			var ok2 := airstrike_cooldown <= 0.0
+			_disarm()
+			airstrike_armed = ok2
+			if not ok2:
+				Audio.play_ui("ui_error")
+		"stop":
+			for u in own:
+				u.order_stop()
+		"hold":
+			for u in own:
+				u.order_hold()
+			if not own.is_empty():
+				Audio.play_ui("ui_confirm")
+		"attack_move":
+			_disarm()
+			attack_move_armed = not own.is_empty()
+		"patrol":
+			_disarm()
+			patrol_armed = not own.is_empty()
+
+
+func select_units(units: Array[Unit]) -> void:
+	_set_selection(units)
 
 
 func _disarm() -> void:

@@ -19,6 +19,12 @@ FUNC = re.compile(r"^(\s*)(?:static\s+)?func\s+\w*\s*\(([^)]*)\)")
 LAMBDA = re.compile(r"\bfunc\s*\(([^)]*)\)")
 
 
+# Node/Control members that locals should not reuse (Godot warns, and the
+# local silently hides the member).
+MEMBERS = {"name", "owner", "ready", "size", "position", "rotation", "scale",
+           "visible", "transform", "basis", "modulate", "theme", "material"}
+
+
 def indent_of(line: str) -> int:
     return len(line) - len(line.lstrip("\t"))
 
@@ -68,6 +74,8 @@ def check(path: pathlib.Path) -> list[str]:
         if f:
             names.append(f.group(1))
         for name in names:
+            if name in MEMBERS:
+                print(f"warning: {path}:{n}: local '{name}' hides a Node member")
             if name in visible:
                 problems.append(f"{path}:{n}: '{name}' is already declared in this function")
             scopes[-1][1].add(name)

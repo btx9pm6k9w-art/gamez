@@ -146,7 +146,7 @@ func _evaluate(dt: float) -> void:
 
 func _after_village() -> void:
 	reveal("launchers")
-	hud.show_message("Village secured. Intel: the launch site is in the hills to the north-east.", HUD.ACCENT, 6.0)
+	hud.show_message("Village secured", HUD.ACCENT, 6.0, "Intel: the launch site is in the hills to the north-east.")
 	if not _counter_sent:
 		_counter_sent = true
 		ai.counter_attack(VILLAGE, 3 + difficulty * 2)
