@@ -5,9 +5,17 @@ A modern-war real-time strategy game in the spirit of Command & Conquer, built w
 a US-led coalition with the UAE against Iran's IRGC, until the coalition's own
 battlefield AI, ORACLE, turns on both sides.
 
-Design document: https://claude.ai/code/artifact/3b74b31f-13ee-4ce3-a532-29f824e41721
+Design document: [docs/DESIGN.md](docs/DESIGN.md) (copy of the live doc at
+https://claude.ai/code/artifact/3b74b31f-13ee-4ce3-a532-29f824e41721).
+
+**Continuing the project on another machine? Start with [HANDOFF.md](HANDOFF.md).**
+History is in [CHANGELOG.md](CHANGELOG.md), decisions in
+[docs/DECISIONS.md](docs/DECISIONS.md), licences in [docs/SOURCES.md](docs/SOURCES.md).
 
 ## Run it
+
+Quickest on a Mac: `./tools/setup_mac.sh` then `./tools/run.sh`. On Windows:
+`tools\setup_windows.ps1`. Or by hand:
 
 1. Install Godot 4.7 (standard build, not .NET): https://godotengine.org/download
 2. Open Godot, choose **Import**, and select this folder's `project.godot`.
