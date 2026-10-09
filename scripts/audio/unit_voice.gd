@@ -38,6 +38,17 @@ const ALERTS := {
 	"unit_lost": "Unit lost.",
 	"wave": "Enemy forces approaching.",
 	"strike": "Strike inbound.",
+	"objective": "Objective complete.",
+	"objective_new": "New objective.",
+	"objective_failed": "Objective failed.",
+	"mission_won": "Mission accomplished.",
+	"mission_lost": "Mission failed.",
+	"reinforcements": "Reinforcements have arrived.",
+	"building": "Building.",
+	"insufficient": "Insufficient funds.",
+	"derrick": "Oil derrick captured.",
+	"derrick_lost": "Oil derrick lost.",
+	"counter_attack": "Enemy counter-attack detected.",
 }
 
 static var enabled := true

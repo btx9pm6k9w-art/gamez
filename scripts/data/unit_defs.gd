@@ -4,6 +4,8 @@ class_name UnitDefs
 ## laser (anti-air beam), drone_launch (spawns a loitering munition),
 ## autocannon (fast bursts of small explosive rounds, used by boats).
 ## "naval": true units move on water only.
+## Buildable units carry "cost" (credits), "build_time" (seconds) and
+## "category" (the production line: infantry, vehicle or naval).
 
 const FACTION_NAMES := {
 	"coalition": "Coalition (US / UAE)",
@@ -17,30 +19,35 @@ const DEFS := {
 		"hp": 650.0, "speed": 6.5, "radius": 1.7, "range": 24.0, "vision": 32.0,
 		"weapon": "cannon", "damage": 95.0, "cooldown": 2.4, "splash": 2.5, "crater": 1.2,
 		"targets": "ground", "turret_speed": 2.2,
+		"cost": 900, "build_time": 14.0, "category": "vehicle",
 	},
 	"ranger": {
 		"display": "Ranger", "faction": "coalition", "model": "soldier",
 		"hp": 90.0, "speed": 3.6, "radius": 0.5, "range": 17.0, "vision": 26.0,
 		"weapon": "rifle", "damage": 9.0, "cooldown": 0.55, "splash": 0.0, "crater": 0.0,
 		"targets": "both",
+		"cost": 150, "build_time": 5.0, "category": "infantry",
 	},
 	"k9": {
 		"display": "K9 Robot Dog", "faction": "coalition", "model": "robodog",
 		"hp": 140.0, "speed": 8.0, "radius": 0.7, "range": 14.0, "vision": 36.0,
 		"weapon": "rifle", "damage": 7.0, "cooldown": 0.25, "splash": 0.0, "crater": 0.0,
 		"targets": "ground",
+		"cost": 300, "build_time": 7.0, "category": "infantry",
 	},
 	"laser_ad": {
 		"display": "Laser Air Defence", "faction": "coalition", "model": "laser_truck",
 		"hp": 320.0, "speed": 5.5, "radius": 1.6, "range": 38.0, "vision": 40.0,
 		"weapon": "laser", "damage": 45.0, "cooldown": 0.6, "splash": 0.0, "crater": 0.0,
 		"targets": "air", "turret_speed": 5.0,
+		"cost": 800, "build_time": 12.0, "category": "vehicle",
 	},
 	"patrol_boat": {
 		"display": "Mk VI-class Patrol Boat", "faction": "coalition", "model": "patrol_boat",
 		"hp": 420.0, "speed": 11.0, "radius": 2.6, "range": 30.0, "vision": 42.0,
 		"weapon": "autocannon", "damage": 16.0, "cooldown": 0.9, "splash": 1.2, "crater": 0.0,
 		"targets": "both", "turret_speed": 3.5, "naval": true,
+		"cost": 700, "build_time": 12.0, "category": "naval",
 	},
 	"karrar": {
 		"display": "Karrar-style Tank", "faction": "iran", "model": "tank",
@@ -77,3 +84,12 @@ const DEFS := {
 
 static func get_def(id: String) -> Dictionary:
 	return DEFS[id]
+
+
+## Units a faction can build, in sidebar order.
+static func buildable(faction: String) -> Array[String]:
+	var out: Array[String] = []
+	for id: String in DEFS:
+		if DEFS[id]["faction"] == faction and DEFS[id].has("cost"):
+			out.append(id)
+	return out

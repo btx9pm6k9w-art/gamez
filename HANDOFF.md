@@ -35,9 +35,11 @@ startup).
 - **Units:** Coalition (Abrams-class tank, Ranger, K9 robot dog, laser air
   defence, patrol boat) and Iran (Karrar-style tank, IRGC rifleman, Shahed-style
   drone launcher and drones, fast attack craft).
-- **Play:** selection, move, attack, attack-move, stop, control groups, minimap,
-  Precision Strike (F) and Airstrike (G), three enemy waves with a boat swarm,
-  win and lose conditions.
+- **Play:** Mission 1 "Beachhead" with briefing, objectives, debrief and three
+  difficulties; oil derricks to capture for income; a C&C-style sidebar that
+  buys reinforcements; classic RTS controls (edge scroll, A/S/H/P, Shift queue,
+  Space to alerts); Precision Strike (F) and Airstrike (G); enemy waves with a
+  boat swarm, counter-attacks and derrick raids.
 - **Graphics:** SDFGI, SSIL, SSR, SSAO, volumetric fog, glow, AgX, HDR output on
   XDR Macs, MetalFX, four presets (F1 to F4), layered film-style VFX.
 - **Audio:** buses with limiter, reverb and sidechain ducking; 3D SFX; adaptive
@@ -134,9 +136,11 @@ scripts/world/           Battlefield (lighting, props, navigation, damage),
                          SetDressing (trees, rigs, ships, landmarks)
 scripts/units/           Unit (ground, air and naval logic), UnitModels, Projectile
 scripts/abilities/       Airstrike
+scripts/missions/        Mission base (objectives, briefing data), Mission 1
+scripts/game/            Economy (oil derricks, credits, production queues)
 scripts/control/         RTSCamera, SelectionManager (orders, Precision Strike)
 scripts/ai/              SimpleAI (waves, boat swarm, counter-attacks)
-scripts/ui/              HUD, minimap, post-process layer
+scripts/ui/              HUD, minimap, objectives, sidebar, briefing/debrief
 scripts/audio/           Audio manager and SoundSynth (procedural sounds and music)
 scripts/data/            UnitDefs (stats and display names)
 shaders/                 terrain, water, post-process; shaders/vfx/ smoke, fire,
@@ -151,10 +155,12 @@ tools/                   setup and check scripts
    and less orange lighting, more detail props. The Mac session does the
    downloads (the cloud container cannot reach asset sites).
 2. Get PR #1 green and merged into `main`.
-3. Economy and base building: oil, tanker trucks, construction, power.
+3. Base building on top of the slice economy: construction yard, power,
+   refinery and tanker trucks, factories with rally points.
 4. Fog of war, the commander hero unit and the remaining abilities.
 5. Real audio from the Sonniss GDC bundles. Log every asset in `docs/SOURCES.md`.
-6. Missions 1 to 3, then the rest of the campaign (see `docs/DESIGN.md`).
+6. Missions 2 and 3, then the rest of the campaign (see `docs/DESIGN.md`).
+   Add a new mission by extending `scripts/missions/mission.gd`.
 
 ## Open questions for the owner
 

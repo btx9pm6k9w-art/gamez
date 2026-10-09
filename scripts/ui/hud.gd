@@ -26,6 +26,12 @@ var _minimap: Control
 var _minimap_tex: ImageTexture
 var _post: ColorRect
 var _message_time := 0.0
+var _objectives: Label
+var _objectives_panel: PanelContainer
+## The running mission (scripts/missions/mission.gd) and its economy; untyped
+## so the HUD works without a mission too.
+var mission: Node
+var economy: Node
 
 
 func _ready() -> void:
@@ -81,9 +87,18 @@ func _ready() -> void:
 	_message.add_theme_constant_override("outline_size", 6)
 	add_child(_message)
 
-	_help = _panel(Control.PRESET_TOP_LEFT)
-	_help.offset_left = 16
-	_help.offset_top = 70
+	_objectives_panel = _panel(Control.PRESET_TOP_LEFT)
+	_objectives_panel.offset_left = 16
+	_objectives_panel.offset_top = 70
+	_objectives_panel.custom_minimum_size = Vector2(360, 0)
+	_objectives = _label(14)
+	_objectives_panel.add_child(_objectives)
+	_objectives_panel.visible = false
+
+	_help = _panel(Control.PRESET_CENTER)
+	_help.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_help.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_help.visible = false
 	var help := _label(13)
 	help.text = "\n".join([
 		"LEFT click / drag   select (Shift adds, double-click or Ctrl+click = all of type)",
@@ -95,6 +110,8 @@ func _ready() -> void:
 		"Q E  rotate    - =  scroll speed    F9  lock mouse to window    V  voices",
 		"F then click  Precision Strike      G then click  Airstrike     F7  VFX showcase",
 		"Minimap: left click jumps, right click sends the selected units",
+		"Sidebar: left click a unit to build it, right click to cancel; Set rally point",
+		"Oil derricks: stand next to one with no enemy near to capture it for income",
 		"T  time of day   F1-F4  graphics   F5  HDR   F11  fullscreen   F10 or ?  help",
 	])
 	_help.add_child(help)
@@ -126,6 +143,37 @@ func setup(bf: Battlefield, sel: SelectionManager, camera_rig: RTSCamera, p_ai: 
 	sel.alert_raised.connect(func(_pos: Vector3) -> void: show_message("Units under attack  (SPACE to jump there)", WARN, 3.0))
 	GameSettings.preset_changed.connect(_on_preset_changed)
 	_on_preset_changed(GameSettings.preset)
+
+
+## Hook up the running mission: objective panel, toasts and derrick markers.
+func set_mission(m: Node, eco: Node) -> void:
+	mission = m
+	economy = eco
+	_objectives_panel.visible = true
+	m.objectives_changed.connect(_refresh_objectives)
+	m.objective_completed.connect(func(text: String) -> void: show_message("Objective complete: " + text, ACCENT, 4.0))
+	m.objective_added.connect(func(text: String) -> void: show_message("New objective: " + text, ACCENT, 5.0))
+	eco.derrick_changed.connect(func(_i: int, holder: int) -> void:
+		if holder == Battlefield.COALITION:
+			show_message("Oil derrick captured", ACCENT, 2.5)
+		elif holder == Battlefield.IRAN:
+			show_message("Oil derrick lost", WARN, 3.0))
+	_refresh_objectives()
+
+
+func _refresh_objectives() -> void:
+	var lines: Array[String] = ["OBJECTIVES"]
+	for o: Dictionary in mission.objectives:
+		var st: int = o["state"]
+		if st == 0:
+			continue
+		var mark: String = ["", "[  ]", "[OK]", "[X]"][st]
+		lines.append("%s %s" % [mark, o["text"]])
+		if st == 1 and o["progress"] != "":
+			lines.append("       " + String(o["progress"]))
+	lines.append("")
+	lines.append("F10  controls")
+	_objectives.text = "\n".join(lines)
 
 
 func _on_flash(strength: float, origin: Vector3) -> void:
@@ -249,12 +297,36 @@ func _draw_overlay() -> void:
 		if rect.size.length() > SelectionManager.DRAG_THRESHOLD:
 			_overlay.draw_rect(rect, Color(ACCENT, 0.12))
 			_overlay.draw_rect(rect, Color(ACCENT, 0.9), false, 1.5)
-	if selection.strike_armed or selection.airstrike_armed or selection.attack_move_armed or selection.patrol_armed:
+	if economy != null:
+		_draw_derricks(cam)
+	if selection.strike_armed or selection.airstrike_armed or selection.attack_move_armed or selection.patrol_armed or selection.rally_armed:
 		var m := _overlay.get_local_mouse_position()
 		var c := WARN if selection.strike_armed or selection.airstrike_armed else Color(1.0, 0.8, 0.3)
 		_overlay.draw_arc(m, 16, 0, TAU, 32, c, 2.0)
 		_overlay.draw_line(m - Vector2(24, 0), m + Vector2(24, 0), c, 1.5)
 		_overlay.draw_line(m - Vector2(0, 24), m + Vector2(0, 24), c, 1.5)
+
+
+## Capture bar and holder colour over each oil derrick.
+func _draw_derricks(cam: Camera3D) -> void:
+	for i in economy.derricks.size():
+		var d: Dictionary = economy.derricks[i]
+		if not d["prop"]["alive"]:
+			continue
+		var wp: Vector3 = economy.derrick_position(i) + Vector3.UP * 7.0
+		if cam.is_position_behind(wp):
+			continue
+		var p := cam.unproject_position(wp)
+		var holder: int = d["owner"]
+		var col := Color(0.3, 1.0, 0.5) if holder == 0 else (Color(1.0, 0.35, 0.25) if holder == 1 else Color(0.9, 0.85, 0.6))
+		var r := Rect2(p - Vector2(24, 0), Vector2(48, 6))
+		_overlay.draw_rect(r.grow(1), Color(0, 0, 0, 0.7))
+		var c: float = d["capture"]
+		if c > 0.0:
+			_overlay.draw_rect(Rect2(r.position + Vector2(24, 0), Vector2(24 * c, 6)), Color(0.3, 1.0, 0.5))
+		elif c < 0.0:
+			_overlay.draw_rect(Rect2(r.position + Vector2(24 + 24 * c, 0), Vector2(-24 * c, 6)), Color(1.0, 0.35, 0.25))
+		_overlay.draw_string(ThemeDB.fallback_font, p + Vector2(-17, -6), "OIL", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, col)
 
 
 func _draw_minimap() -> void:
@@ -279,6 +351,14 @@ func _draw_minimap() -> void:
 			gp = rig.get_focus()
 		corners.append(Vector2(gp.x, gp.z) * k)
 	corners.append(corners[0])
+	if economy != null:
+		for i in economy.derricks.size():
+			var dp: Vector3 = economy.derrick_position(i)
+			if dp == Vector3.INF:
+				continue
+			var holder: int = economy.derricks[i]["owner"]
+			var dc := Color(0.3, 1.0, 0.5) if holder == 0 else (Color(1.0, 0.35, 0.25) if holder == 1 else Color(1.0, 0.9, 0.5))
+			_minimap.draw_circle(Vector2(dp.x, dp.z) / Battlefield.MAP_SIZE * s, 3.5, dc)
 	# Classic minimap ping: expanding rings where our units were hit.
 	var age := Time.get_ticks_msec() / 1000.0 - selection.alert_time
 	if selection.alert_pos != Vector3.INF and age < 4.0:

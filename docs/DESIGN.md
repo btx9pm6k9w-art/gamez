@@ -2,7 +2,7 @@
 Markdown copy of the living design document, kept in git so the project can be
 continued from any machine without access to claude.ai. Source of truth while
 the claude.ai doc exists: https://claude.ai/code/artifact/3b74b31f-13ee-4ce3-a532-29f824e41721
-Last synced: 2026-10-09 (doc revision 31). Re-export and overwrite this file
+Last synced: 2026-10-09 (doc revision 32). Re-export and overwrite this file
 whenever the doc changes; if the online doc is ever lost, this file becomes the
 source of truth.
 -->
@@ -196,6 +196,14 @@ The player commands the coalition. Difficulty ramps through AI tier, enemy incom
 **Difficulty settings** (Recruit, Veteran, Elite) scale on top of the per-mission tier: enemy income x0.8 / x1.0 / x1.3, enemy build speed, AI reaction time 2.0 s / 1.0 s / 0.3 s, and whether the AI micro-manages focus fire and retreats.
 
 **AI tiers.** 1 follows scripts only. 2 adds simple threat response. 3 builds and expands with a build order. 4 attacks on several fronts and harasses harvesters. 5 scouts the player's army composition and builds counters, uses abilities and terrain destruction.
+
+**Playable now: Mission 1 "Beachhead" (vertical slice).** On the Musandam coast map the player lands at the pier, takes the oasis village, secures the oil field and destroys the drone launch site in the hills that struck the tankers. It combines the teaching goals of mission 1 with the landing of mission 4, and becomes the real "Tanker Alley" once tanker escort is built. Objectives: take and hold the village (8 seconds with no defenders left), hold 2 of 3 oil derricks, then destroy the Shahed launchers (revealed by village intel or after 4 minutes). Bonus: keep both patrol boats afloat, finish within 15 minutes. Taking the village triggers a counter-attack; the AI also raids oil derricks the player holds.
+
+**Mission structure.** Every mission has a briefing (place, date, situation typed out like a field report, objectives, field notes, difficulty choice) shown over the paused live map, an objectives panel during play with live progress ("3 defenders left", "Holding 5 of 8 s", "2 of 3 held"), spoken and on-screen notices when objectives complete, appear or fail, and a debrief with time, kills, losses and bonus objectives. Objective kinds: capture (clear and hold a zone), destroy (a set of targets), secure (hold resource points), defend (keep something alive or survive a timer) and escort (a unit reaches a point). Primary objectives win; failing one loses; bonus objectives count in the debrief.
+
+**Economy in the slice.** Until base building arrives, oil derricks are captured by standing next to them with no enemy near (5 seconds) and pay 8 credits a second each. A C&C-style sidebar sells reinforcements on three production lines (infantry, vehicles, naval), one unit at a time per line with a queue of six, paid up front and refunded on cancel. New units land at the pier and gather at a rally point. Prices: Ranger 150, K9 300, Patrol Boat 700, Laser AD 800, Abrams 900.
+
+**Difficulty in the slice.** Recruit: smaller garrison, waves two units smaller and 35% further apart. Veteran: as designed. Elite: bigger garrison, extra tanks and boats per wave, waves 20% closer together, one fewer starting tank, faster derrick raids.
 
 ## Terrain and map design
 

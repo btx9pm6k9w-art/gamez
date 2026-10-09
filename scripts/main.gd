@@ -1,6 +1,12 @@
 extends Node3D
-## Prototype skirmish "Beachhead": Coalition forces on the Strait of Hormuz
-## coast hold off Iranian defenders, drone launchers and three attack waves.
+## Entry point. Builds the battlefield, camera, controls, AI, economy and HUD,
+## then runs Mission 1 "Beachhead" after its briefing. The mission owns the
+## starting forces, objectives, win and loss (scripts/missions/).
+
+const Economy := preload("res://scripts/game/economy.gd")
+const Mission01 := preload("res://scripts/missions/mission_01_beachhead.gd")
+const Briefing := preload("res://scripts/ui/briefing.gd")
+const Sidebar := preload("res://scripts/ui/sidebar.gd")
 
 const SEED := 2028
 
@@ -9,7 +15,9 @@ var rig: RTSCamera
 var selection: SelectionManager
 var ai: SimpleAI
 var hud: HUD
-var _game_over := false
+var economy: Economy
+var mission: Node
+var _overlay_layer: CanvasLayer
 
 
 func _ready() -> void:
@@ -33,69 +41,57 @@ func _ready() -> void:
 	ai.battlefield = battlefield
 	add_child(ai)
 
+	economy = Economy.new()
+	economy.name = "Economy"
+	add_child(economy)
+	economy.setup(battlefield)
+	ai.economy = economy
+	selection.economy = economy
+
 	hud = HUD.new()
 	add_child(hud)
 	hud.setup(battlefield, selection, rig, ai)
 
-	_spawn_forces()
-	battlefield.unit_killed.connect(_on_unit_killed)
-	hud.show_message("Operation Fracture Line: take the village, survive the waves", HUD.ACCENT, 6.0)
+	var sidebar := Sidebar.new()
+	sidebar.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	sidebar.offset_right = -16
+	sidebar.offset_top = 70
+	sidebar.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	hud.add_child(sidebar)
+	sidebar.setup(economy, selection)
+
+	_overlay_layer = CanvasLayer.new()
+	_overlay_layer.layer = 5
+	_overlay_layer.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(_overlay_layer)
+
+	mission = Mission01.new()
+	mission.name = "Mission"
+	add_child(mission)
+	mission.mission_ended.connect(_on_mission_ended)
 	if "--benchmark" in OS.get_cmdline_user_args():
+		# Benchmarks skip the briefing so the scene is identical every run.
+		_start_mission(1)
 		add_child(Benchmark.new())
+	else:
+		var briefing := Briefing.new()
+		_overlay_layer.add_child(briefing)
+		briefing.begin.connect(_start_mission)
+		briefing.show_briefing(mission.briefing(), mission.preview_objectives())
 
 
-func _spawn_forces() -> void:
-	var c := Battlefield.COALITION
-	var i := Battlefield.IRAN
-	var face_ne := deg_to_rad(-45.0) # toward the Iranian hills
-	for k in 4:
-		battlefield.spawn_unit("abrams", c, Vector3(62 + k * 5.0, 0, 150), face_ne)
-	for k in 8:
-		battlefield.spawn_unit("ranger", c, Vector3(60 + (k % 4) * 2.5, 0, 157 + (k / 4) * 2.5), face_ne)
-	for k in 2:
-		battlefield.spawn_unit("k9", c, Vector3(76 + k * 3.0, 0, 154), face_ne)
-	for k in 2:
-		battlefield.spawn_unit("laser_ad", c, Vector3(58 + k * 10.0, 0, 166), face_ne)
-	# Patrol boats alongside the pier.
-	for k in 2:
-		battlefield.spawn_unit("patrol_boat", c, Vector3(30, 0, 164 + k * 12.0), deg_to_rad(90.0))
-
-	var face_sw := deg_to_rad(135.0)
-	# Village garrison.
-	for k in 8:
-		var a := TAU * k / 8.0
-		battlefield.spawn_unit("irgc", i, Vector3(100 + cos(a) * 6.0, 0, 100 + sin(a) * 6.0), face_sw)
-	battlefield.spawn_unit("karrar", i, Vector3(108, 0, 92), face_sw)
-	battlefield.spawn_unit("karrar", i, Vector3(92, 0, 108), face_sw)
-	# Mountain base: launchers behind a tank screen.
-	for k in 3:
-		battlefield.spawn_unit("shahed_launcher", i, Vector3(146 + k * 6.0, 0, 50), face_sw)
-	for k in 2:
-		battlefield.spawn_unit("karrar", i, Vector3(140 + k * 8.0, 0, 62), face_sw)
-	for k in 4:
-		battlefield.spawn_unit("irgc", i, Vector3(140 + k * 3.0, 0, 66), face_sw)
-	# Fast attack craft lurking in the lee of the island.
-	for k in 3:
-		battlefield.spawn_unit("fast_boat", i, Vector3(8 + k * 6.0, 0, 44), deg_to_rad(180.0))
+func _start_mission(difficulty: int) -> void:
+	mission.difficulty = difficulty
+	ai.difficulty = difficulty
+	mission.start(battlefield, economy, ai, hud)
+	hud.set_mission(mission, economy)
+	hud.show_message(mission.briefing().get("title", ""), HUD.ACCENT, 4.0)
 
 
-func _on_unit_killed(_u: Unit) -> void:
-	if _game_over:
-		return
-	var own := 0
-	for u: Unit in battlefield.units[Battlefield.COALITION]:
-		if not u.is_air:
-			own += 1
-	var enemy := 0
-	for u: Unit in battlefield.units[Battlefield.IRAN]:
-		if not u.is_air:
-			enemy += 1
-	if own == 0:
-		_game_over = true
-		hud.show_message("Beachhead lost. Press F6 to restart.", HUD.WARN, 9999.0)
-	elif enemy == 0 and ai.waves_remaining() == 0:
-		_game_over = true
-		hud.show_message("Victory. The coast is secure. Press F6 to play again.", HUD.ACCENT, 9999.0)
+func _on_mission_ended(won: bool, summary: String) -> void:
+	var debrief := Briefing.new()
+	_overlay_layer.add_child(debrief)
+	debrief.show_debrief(won, summary, mission.objectives)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:

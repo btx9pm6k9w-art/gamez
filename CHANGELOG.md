@@ -5,6 +5,27 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-09
 
+### Mission 1, objectives, oil economy and reinforcements
+- The skirmish is now **Mission 1 "Beachhead"** with a briefing (situation typed
+  out over the paused map, objectives, field notes, difficulty: Recruit, Veteran,
+  Elite) and a debrief (time, kills, losses, bonus objectives).
+- Objectives with live progress in a panel on the left: take and hold the
+  village, hold 2 of 3 oil derricks, destroy the drone launchers (revealed by
+  village intel or after 4 minutes); bonus: keep both patrol boats afloat,
+  finish within 15 minutes. Spoken and on-screen notices.
+- Mission framework in `scripts/missions/` (`mission.gd` base with capture,
+  destroy, secure, defend and timer helpers; `mission_01_beachhead.gd`). Starting
+  forces moved there from `main.gd`.
+- Oil economy (`scripts/game/economy.gd`): capture derricks by standing next to
+  them, 8 credits a second each, capture bars over derricks and dots on the
+  minimap.
+- C&C-style sidebar (`scripts/ui/sidebar.gd`): credits ticker, income, three
+  production lines with queues, progress bars, right click to cancel, rally
+  point. Prices and build times in `UnitDefs`.
+- AI: difficulty scales garrison, waves and timing; counter-attack when the
+  village falls; squads raid derricks the player holds.
+- Help moved to a centred overlay (F10 or ?).
+
 ### Classic RTS controls
 - Edge scrolling now works in a window: the mouse is confined to the window
   (F9 frees it), the edge band is measured in screen pixels so Retina scaling no

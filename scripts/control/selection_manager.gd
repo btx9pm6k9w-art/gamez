@@ -25,6 +25,10 @@ var drag_start := Vector2.ZERO
 var dragging := false
 var attack_move_armed := false
 var patrol_armed := false
+## Sidebar "Set rally point": the next left click places it.
+var rally_armed := false
+## Economy node when the mission has one (scripts/game/economy.gd).
+var economy: Node
 ## Last place our units took fire, for Space and the minimap ping.
 var alert_pos := Vector3.INF
 var alert_time := -100.0
@@ -51,6 +55,17 @@ func _unhandled_input(event: InputEvent) -> void:
 				if airstrike_armed:
 					_call_airstrike(mb.position)
 					return
+				if rally_armed:
+					rally_armed = false
+					var rp := ground_point(mb.position)
+					if rp != Vector3.INF and economy != null:
+						if battlefield.terrain.is_land(rp):
+							economy.set_rally("infantry", rp)
+							economy.set_rally("vehicle", rp)
+						else:
+							economy.set_rally("naval", rp)
+						Audio.play_ui("ui_confirm")
+					return
 				if attack_move_armed or patrol_armed:
 					var p := ground_point(mb.position)
 					if p != Vector3.INF:
@@ -72,7 +87,7 @@ func _unhandled_input(event: InputEvent) -> void:
 				else:
 					_click_select(mb.position, mb.shift_pressed, mb.double_click or mb.ctrl_pressed or mb.meta_pressed)
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
-			if attack_move_armed or patrol_armed or strike_armed or airstrike_armed:
+			if attack_move_armed or patrol_armed or strike_armed or airstrike_armed or rally_armed:
 				# Right click cancels an armed order, as in every classic RTS.
 				_disarm()
 				return
@@ -138,6 +153,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _disarm() -> void:
+	rally_armed = false
 	attack_move_armed = false
 	patrol_armed = false
 	strike_armed = false
