@@ -43,7 +43,14 @@ void fragment() {
 
 	vec3 na = texture(wave_normal_a, uv * 0.045 + vec2(TIME * 0.012, TIME * 0.006)).rgb;
 	vec3 nb = texture(wave_normal_b, uv * 0.11 - vec2(TIME * 0.009, -TIME * 0.014)).rgb;
-	NORMAL_MAP = normalize(mix(na, nb, 0.5));
+	// Decode both tangent-space normals to -1..1, combine them with a
+	// whiteout blend (keeps the detail of both), then encode back.
+	vec2 xa = na.xy * 2.0 - 1.0;
+	vec2 xb = nb.xy * 2.0 - 1.0;
+	vec3 da = vec3(xa, sqrt(max(1.0 - dot(xa, xa), 0.0)));
+	vec3 db = vec3(xb, sqrt(max(1.0 - dot(xb, xb), 0.0)));
+	vec3 nmix = normalize(vec3(da.xy + db.xy, da.z * db.z));
+	NORMAL_MAP = nmix * 0.5 + 0.5;
 	NORMAL_MAP_DEPTH = 0.7;
 	ROUGHNESS = mix(0.04, 0.6, foam);
 	METALLIC = 0.0;

@@ -173,17 +173,28 @@ tools/                   setup and check scripts
 
 ## Next steps
 
-1. **Art pass (top priority).** Real CC0 models and PBR textures, brighter
-   and less orange lighting, more detail props. The Mac session does the
-   downloads (the cloud container cannot reach asset sites).
-2. Get PR #1 green and merged into `main`.
-3. Base building on top of the slice economy: construction yard, power,
-   refinery and tanker trucks, factories with rally points.
-4. Fog of war, the commander hero unit and the remaining abilities.
-5. Real audio from the Sonniss GDC bundles. Log every asset in `docs/SOURCES.md`.
-6. Fog of war, then missions 2 and 3, then the rest of the campaign. Each
-   mission is specified in `docs/DESIGN.md` under "Mission guide".
-   Add a new mission by extending `scripts/missions/mission.gd`.
+Folded in the external review (`/mnt/project-files/external-review-plan.md`,
+which read commit 9dfc06c) in its priority order; see DECISIONS #23.
+
+1. **Mac verification** of the UI overhaul, line of fire, fixed-step movement,
+   the two navmeshes and the new terrain normals. Commit a macOS export preset
+   (`export_presets.cfg`, no credentials) and test an exported app.
+2. **Fog of war and scouting:** a vision grid (unexplored, explored, visible)
+   used by rendering, targeting, power targeting and the minimap.
+3. **AI groups with roles** (defend, flank, raid, protect launchers, retreat)
+   using only what the AI can see, instead of timed waves at the player centre.
+4. **Water routes for boats:** a water navmesh instead of probing headings.
+5. **Polish Mission 1 to a complete 8 to 12 minute mission** before adding
+   units: cover, scouting, a road or dune flank choice, harbour loss condition.
+6. **Refactor as it grows:** split `unit.gd` into movement, weapon, vision and
+   command parts; typed resources for unit defs; a spatial grid for target
+   searches before armies get bigger.
+7. Art pass 2: one consistent model style (see "Art and UI direction" in the
+   design doc), unit portraits from the models, veterancy.
+8. Base building on the slice economy, then missions 2 and 3. Each mission is
+   specified in `docs/DESIGN.md` under "Mission guide"; extend
+   `scripts/missions/mission.gd`.
+9. Real audio from the Sonniss GDC bundles. Log every asset in `docs/SOURCES.md`.
 
 ## Open questions for the owner
 

@@ -5,6 +5,36 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-09
 
+### Fixes from the external code review
+- **Line of fire:** walls, houses, containers, tanks and rocks, and ridges in
+  the terrain, now block direct fire. Units only pick targets they can see
+  (`Battlefield.find_target`, `Unit.has_line_of_fire`), close in when a wall is
+  in the way, and rifle rounds stop at the obstacle. Shells and missiles sweep
+  each physics step against the ground and solid props
+  (`Battlefield.line_blocked`), so they burst on the wall instead of passing
+  through. Drone launchers still fire over everything.
+- **Fixed-step movement:** ground and boat positions now advance in
+  `_physics_process` with navigation; the model is drawn between the last two
+  ticks, so motion stays smooth at any frame rate. Boat bobbing stays visual.
+- **Two navmeshes:** infantry (0.6 m clearance) and vehicles (1.8 m, gentler
+  slopes) on separate navigation layers of one map, so tanks are not routed
+  through gaps only soldiers fit while everyone still avoids everyone.
+- **Orders by domain:** boats ignore land points and ground units ignore water
+  points; an order nobody can reach buzzes.
+- **Commander powers** cost credits ($300 strike, $600 airstrike) on top of the
+  recharge and now hurt anyone under them, own troops included. While aiming,
+  the ground they will hit is outlined.
+- **Shaders:** water and terrain normal maps are decoded before blending
+  (whiteout blend; triplanar normals built in world space).
+- **Post effects:** film grain, lens fringe and depth of field are off by
+  default (depth of field on Ultra only).
+- **Checks:** `tools/check.sh` fails when gdparse is missing, when the import
+  or the run exits with an error, and on more error patterns.
+- `export_presets.cfg` is no longer ignored, so a macOS export preset can be
+  committed (credentials stay in the ignored `.godot/`).
+- Checked: the stop key no longer stops enemy units (orders go through
+  `_only_own`).
+
 ### UI overhaul: tactical-glass HUD, sidebar, briefing and main menu
 - Art and UI direction added to the design doc (`docs/DESIGN.md`).
 - **One visual language** (`scripts/ui/ui_theme.gd`): dark translucent glass

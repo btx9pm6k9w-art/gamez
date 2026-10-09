@@ -5,9 +5,9 @@ shader_type canvas_item;
 
 uniform sampler2D screen_tex : hint_screen_texture, filter_linear;
 uniform float sharpen = 0.3;
-uniform float chroma = 0.5;
+uniform float chroma = 0.0; // off by default: readable battlefield first
 uniform float vignette = 0.32;
-uniform float grain = 0.018;
+uniform float grain = 0.0; // off by default
 uniform float flash = 0.0; // 0..1 brief exposure punch from big blasts
 
 void fragment() {

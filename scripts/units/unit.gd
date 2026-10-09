@@ -55,6 +55,14 @@ var _engine_retry := 0.0
 var _wake: GPUParticles3D
 var _bob_phase := randf() * TAU
 var _roll := 0.0
+## Fixed-step movement: position advances in _physics_process; the model is
+## offset between the last two ticks so motion stays smooth at any frame rate.
+var _prev_pos := Vector3.INF
+var _model_base := Vector3.ZERO
+## Line of sight to the current target, refreshed a few times a second.
+var _los_ok := true
+var _los_target: Unit
+var _los_timer := 0.0
 
 
 func setup(id: String, p_team: int, bf: Node) -> void:
@@ -76,6 +84,7 @@ func _ready() -> void:
 	add_to_group("team_%d" % team)
 	model = UnitModels.build(def["model"], faction, unit_id)
 	add_child(model)
+	_model_base = model.position
 	turret = model.find_child("Turret", true, false) as Node3D
 	muzzle = model.find_child("Muzzle", true, false) as Node3D
 	legs = model.find_child("Legs", true, false) as Node3D
@@ -116,6 +125,7 @@ func _ready() -> void:
 	else:
 		agent = NavigationAgent3D.new()
 		agent.radius = r
+		agent.navigation_layers = 2 if r > 1.0 else 1 # Battlefield.NAV_LAYER_VEHICLE / _INFANTRY
 		agent.height = 2.0
 		agent.max_speed = def["speed"]
 		agent.path_desired_distance = 1.2
@@ -235,6 +245,7 @@ func _physics_process(delta: float) -> void:
 		return
 	_cooldown -= delta
 	_scan_timer -= delta
+	_los_timer -= delta
 	if is_air:
 		_process_drone(delta)
 		return
@@ -269,7 +280,9 @@ func _physics_process(delta: float) -> void:
 			_engage(delta)
 		State.IDLE:
 			if target != null:
-				if not hold and global_position.distance_to(target.global_position) > range_to(target):
+				if hold and not has_line_of_fire(target):
+					target = null
+				elif not hold and (global_position.distance_to(target.global_position) > range_to(target) or not has_line_of_fire(target)):
 					# Classic guard behaviour: go after an enemy that is in sight
 					# but out of range, then walk back to where we stood.
 					var t := target
@@ -282,6 +295,41 @@ func _physics_process(delta: float) -> void:
 		turret.rotation.y = lerp_angle(turret.rotation.y, 0.0, delta)
 
 	agent.velocity = _desired
+	_integrate_ground(delta)
+
+
+## Authoritative ground movement on the fixed physics step.
+func _integrate_ground(delta: float) -> void:
+	_prev_pos = global_position
+	var v := _velocity
+	v.y = 0.0
+	if v.length() > 0.2:
+		global_position += v * delta
+		var desired_yaw := atan2(-v.x, -v.z)
+		_yaw = lerp_angle(_yaw, desired_yaw, clampf(delta * (3.0 if def["radius"] > 1.0 else 8.0), 0.0, 1.0))
+	global_position = battlefield.terrain.clamp_to_map(global_position)
+	global_position.y = battlefield.terrain.height_at(global_position)
+	# Vehicles pitch and roll with the ground; infantry stay upright.
+	var up := Vector3.UP
+	if def["radius"] > 1.0:
+		up = basis.y.slerp(battlefield.terrain.normal_at(global_position), clampf(delta * 6.0, 0.0, 1.0))
+	var fwd := Vector3(-sin(_yaw), 0.0, -cos(_yaw))
+	var right := fwd.cross(up).normalized()
+	fwd = up.cross(right).normalized()
+	basis = Basis(right, up, -fwd)
+
+
+## Places the model between the previous and current tick (render only).
+func _interpolate_model() -> void:
+	if _prev_pos == Vector3.INF or model == null:
+		return
+	var back := _prev_pos - global_position
+	back.y = 0.0 if is_naval else back.y
+	if back.length_squared() > 25.0: # teleported
+		_prev_pos = global_position
+		back = Vector3.ZERO
+	var f := Engine.get_physics_interpolation_fraction()
+	model.position = _model_base + basis.inverse() * (back * (1.0 - f))
 
 
 func _steer_to(p: Vector3) -> Vector3:
@@ -316,7 +364,7 @@ func _process_boat(delta: float) -> void:
 			goal = move_goal if target == null else _orbit_point()
 		State.ATTACK:
 			goal = _orbit_point()
-	if target != null and global_position.distance_to(target.global_position) <= float(def["range"]):
+	if target != null and global_position.distance_to(target.global_position) <= float(def["range"]) and has_line_of_fire(target):
 		_aim_and_fire(delta)
 	var want := Vector3.ZERO
 	if goal != Vector3.INF:
@@ -337,6 +385,13 @@ func _process_boat(delta: float) -> void:
 				want += d.normalized() * (min_d - d.length()) * 3.0
 	var accel := 4.0 if want.length() > _velocity.length() else 2.5
 	_velocity = _velocity.move_toward(want, accel * delta)
+	_prev_pos = global_position
+	var terrain: Terrain = battlefield.terrain
+	var next := global_position + _velocity * delta
+	if terrain.is_land(next) or next != terrain.clamp_to_map(next, 2.0):
+		_velocity *= -0.2
+	else:
+		global_position = next
 
 
 func _orbit_point() -> Vector3:
@@ -364,15 +419,11 @@ func _clear_heading(dir: Vector3) -> Vector3:
 	return -dir
 
 
+## Heading, roll and bobbing are presentation; the hull's position moves on
+## the physics step in _process_boat().
 func _process_boat_visual(delta: float) -> void:
-	var terrain: Terrain = battlefield.terrain
 	var v := _velocity
 	var speed := v.length()
-	var next := global_position + v * delta
-	if terrain.is_land(next) or next != terrain.clamp_to_map(next, 2.0):
-		_velocity *= -0.2
-	else:
-		global_position = next
 	var turn := 0.0
 	if speed > 0.5:
 		var desired_yaw := atan2(-v.x, -v.z)
@@ -386,6 +437,7 @@ func _process_boat_visual(delta: float) -> void:
 	basis = Basis.from_euler(Vector3(pitch, _yaw, _roll + sin(t * 1.1 + _bob_phase) * 0.03))
 	if _wake:
 		_wake.amount_ratio = clampf(k * 1.2, 0.05, 1.0)
+	_interpolate_model()
 
 
 ## Weapon range, extended by up to 25% when firing down from high ground.
@@ -397,14 +449,15 @@ func range_to(t: Unit) -> float:
 func _engage(delta: float) -> void:
 	var dist := global_position.distance_to(target.global_position)
 	var reach := range_to(target)
-	if dist > reach * 0.95:
+	# Out of range, or in range but blocked by a wall or a ridge: close in.
+	if dist > reach * 0.95 or not has_line_of_fire(target):
 		_repath_timer -= delta
 		if _repath_timer <= 0.0:
 			_repath_timer = 0.5
 			agent.target_position = target.global_position
 		if not agent.is_navigation_finished():
 			_desired = _steer_to(agent.get_next_path_position())
-	if dist <= reach:
+	if dist <= reach and has_line_of_fire(target):
 		_aim_and_fire(delta)
 
 
@@ -437,22 +490,8 @@ func _process(delta: float) -> void:
 		return
 	var v := _velocity
 	v.y = 0.0
-	var moving := v.length() > 0.2
-	if moving:
-		global_position += v * delta
-		var desired_yaw := atan2(-v.x, -v.z)
-		_yaw = lerp_angle(_yaw, desired_yaw, clampf(delta * (3.0 if def["radius"] > 1.0 else 8.0), 0.0, 1.0))
-	global_position = battlefield.terrain.clamp_to_map(global_position)
-	global_position.y = battlefield.terrain.height_at(global_position)
-	# Vehicles pitch and roll with the ground; infantry stay upright.
-	var up := Vector3.UP
-	if def["radius"] > 1.0:
-		up = basis.y.slerp(battlefield.terrain.normal_at(global_position), clampf(delta * 6.0, 0.0, 1.0))
-	var fwd := Vector3(-sin(_yaw), 0.0, -cos(_yaw))
-	var right := fwd.cross(up).normalized()
-	fwd = up.cross(right).normalized()
-	basis = Basis(right, up, -fwd)
-	_animate(delta, moving, v.length())
+	_interpolate_model()
+	_animate(delta, v.length() > 0.2, v.length())
 
 
 func _animate(delta: float, moving: bool, speed: float) -> void:
@@ -465,6 +504,23 @@ func _animate(delta: float, moving: bool, speed: float) -> void:
 		var phase := _anim_t + (PI if i % 2 == 1 else 0.0) + (PI * 0.5 if i >= 2 else 0.0)
 		leg.rotation.x = sin(phase) * (0.6 if moving else 0.0)
 		i += 1
+
+
+## Direct-fire weapons need a clear line to the target; drone launchers lob
+## over everything. Cached for a quarter second per target.
+func has_line_of_fire(t: Unit) -> bool:
+	if def["weapon"] == "drone_launch" or t.is_air:
+		return true
+	if t == _los_target and _los_timer > 0.0:
+		return _los_ok
+	_los_target = t
+	_los_timer = 0.25
+	_los_ok = battlefield.line_blocked(_fire_origin(), t.aim_point()) == Vector3.INF
+	return _los_ok
+
+
+func _fire_origin() -> Vector3:
+	return muzzle.global_position if muzzle else aim_point()
 
 
 func _can_target(t: Unit) -> bool:
@@ -484,7 +540,7 @@ func _auto_target() -> void:
 		# A plain move ignores targets until it is back at its post.
 		_go(_guard_post, false)
 		return
-	if target != null and global_position.distance_to(target.global_position) <= float(def["range"]) * 1.1:
+	if target != null and global_position.distance_to(target.global_position) <= float(def["range"]) * 1.1 and has_line_of_fire(target):
 		return
 	var radius: float = def["range"]
 	if state == State.ATTACK_MOVE:
@@ -533,6 +589,12 @@ func _fire() -> void:
 			VFX.muzzle_flash(from, 0.35, aim - from)
 			var hit := randf() < 0.8
 			var end := aim + (Vector3.ZERO if hit else Vector3(randf_range(-1.5, 1.5), randf_range(-0.5, 1.0), randf_range(-1.5, 1.5)))
+			var stop: Vector3 = battlefield.line_blocked(from, end)
+			if stop != Vector3.INF:
+				# The round hits the wall or the crest in between.
+				hit = false
+				end = stop
+				VFX.impact(end)
 			VFX.tracer(from, end)
 			if hit:
 				target.take_damage(def["damage"], team, "rifle")

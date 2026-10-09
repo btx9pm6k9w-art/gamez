@@ -323,6 +323,8 @@ func _draw_overlay() -> void:
 	if selection.strike_armed or selection.airstrike_armed or selection.attack_move_armed or selection.patrol_armed or selection.rally_armed:
 		var m := _overlay.get_local_mouse_position()
 		var c := WARN if selection.strike_armed or selection.airstrike_armed else Color(1.0, 0.85, 0.4)
+		if selection.strike_armed or selection.airstrike_armed:
+			_draw_footprint(cam, m, 10.0 if selection.strike_armed else 7.0, selection.airstrike_armed)
 		var spin := now * 1.5
 		for k in 4:
 			var a := spin + k * PI * 0.5
@@ -358,3 +360,36 @@ func _draw_derricks(cam: Camera3D) -> void:
 		var dia := PackedVector2Array([p + Vector2(0, -20), p + Vector2(7, -13), p + Vector2(0, -6), p + Vector2(-7, -13)])
 		_overlay.draw_colored_polygon(dia, Color(col, 0.9))
 		_overlay.draw_string(UI.header_font(), p + Vector2(10, -8), "OIL", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, col)
+
+
+## The ground a commander power will hit, so friendly troops in it are seen:
+## a ring for the strike, a bomb line across the screen for the airstrike.
+func _draw_footprint(cam: Camera3D, mouse: Vector2, radius: float, line: bool) -> void:
+	var g := selection.ground_point(mouse)
+	if g == Vector3.INF:
+		return
+	var col := Color(UI.DANGER, 0.85)
+	if line:
+		var side := cam.global_basis.x
+		side.y = 0.0
+		side = side.normalized()
+		for k in 6:
+			var c := g + side * (k - 2.5) * Airstrike.SPACING
+			_ring(cam, c, radius, col)
+		return
+	_ring(cam, g, radius, col)
+
+
+func _ring(cam: Camera3D, c: Vector3, radius: float, col: Color) -> void:
+	var pts := PackedVector2Array()
+	for k in 33:
+		var a := TAU * k / 32.0
+		var w := c + Vector3(cos(a), 0, sin(a)) * radius
+		w.y = battlefield.terrain.height_at(w) + 0.2
+		if cam.is_position_behind(w):
+			return
+		pts.append(cam.unproject_position(w))
+	_overlay.draw_polyline(pts, col, 1.5, true)
+	var fill := pts.duplicate()
+	fill.remove_at(fill.size() - 1)
+	_overlay.draw_colored_polygon(fill, Color(col, 0.08))

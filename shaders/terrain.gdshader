@@ -41,6 +41,32 @@ vec4 triplanar(sampler2D tex, vec3 p, vec3 n, float scale) {
 	return texture(tex, p.zy * scale) * w.x + texture(tex, p.xz * scale) * w.y + texture(tex, p.xy * scale) * w.z;
 }
 
+// Normal maps imported with hint_normal may be stored as two channels (RGTC),
+// so rebuild z from x and y like Godot's own NORMAL_MAP path does.
+vec3 unpack_normal(vec2 rg) {
+	vec2 xy = rg * 2.0 - 1.0;
+	return vec3(xy, sqrt(max(1.0 - dot(xy, xy), 0.0)));
+}
+
+// Triplanar normal map with a whiteout blend per projection (after Ben
+// Golus, "Normal Mapping for a Triplanar Shader"): each sample is decoded to
+// -1..1, swizzled into world space and blended by the same weights as the
+// albedo. strength scales the bumps. Returns a world-space normal.
+vec3 triplanar_normal(sampler2D tex, vec3 p, vec3 n, float scale, float strength) {
+	vec3 w = pow(abs(n), vec3(4.0));
+	w /= (w.x + w.y + w.z);
+	vec3 tx = unpack_normal(texture(tex, p.zy * scale).rg);
+	vec3 ty = unpack_normal(texture(tex, p.xz * scale).rg);
+	vec3 tz = unpack_normal(texture(tex, p.xy * scale).rg);
+	tx.xy *= strength;
+	ty.xy *= strength;
+	tz.xy *= strength;
+	tx = vec3(tx.xy + n.zy, abs(tx.z) * n.x);
+	ty = vec3(ty.xy + n.xz, abs(ty.z) * n.y);
+	tz = vec3(tz.xy + n.xy, abs(tz.z) * n.z);
+	return normalize(tx.zyx * w.x + ty.xzy * w.y + tz.xyz * w.z);
+}
+
 void fragment() {
 	float n_large = texture(detail_noise, world_pos.xz * 0.018).r;
 	float n_mid = triplanar(detail_noise, world_pos, world_normal, 0.09).r;
@@ -95,13 +121,13 @@ void fragment() {
 	ALBEDO = col;
 	ROUGHNESS = mix(mix(mix(0.93, 0.78, rock), 0.7, salt), 0.32, wet);
 	SPECULAR = 0.45;
-	vec3 nm = triplanar(detail_normal, world_pos, world_normal, 0.25).rgb;
+	float bump = mix(0.5, 1.6, rock) + scorch * 0.6 + gravel * 1.2 - dune * 0.3;
+	vec3 wn = triplanar_normal(detail_normal, world_pos, normalize(world_normal), 0.25, bump);
 	if (use_textures) {
-		nm = mix(triplanar(sand_nor, world_pos, world_normal, 0.21).rgb,
-			triplanar(rock_nor, world_pos, world_normal, 0.11).rgb, stony);
+		wn = normalize(mix(triplanar_normal(sand_nor, world_pos, normalize(world_normal), 0.21, bump),
+			triplanar_normal(rock_nor, world_pos, normalize(world_normal), 0.11, bump), stony));
 	}
-	NORMAL_MAP = nm;
-	NORMAL_MAP_DEPTH = mix(0.5, 1.6, rock) + scorch * 0.6 + gravel * 1.2 - dune * 0.3;
+	NORMAL = normalize((VIEW_MATRIX * vec4(wn, 0.0)).xyz);
 	AO = mix(1.0, 0.7, scorch);
 	AO_LIGHT_AFFECT = 0.3;
 }

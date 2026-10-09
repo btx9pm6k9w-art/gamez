@@ -14,6 +14,10 @@ signal alert_raised(pos: Vector3)
 
 const DRAG_THRESHOLD := 6.0
 const STRIKE_COOLDOWN := 25.0
+## Commander powers cost credits as well as recharge time, and they hurt
+## anyone under them, your own troops included, so they are a choice.
+const STRIKE_COST := 300.0
+const AIRSTRIKE_COST := 600.0
 const STRIKE_DELAY := 3.0
 const AIRSTRIKE_COOLDOWN := 40.0
 
@@ -331,7 +335,7 @@ func ground_point(screen: Vector2) -> Vector3:
 ## Move (or attack-move) the selection to a world point in a loose
 ## formation. With queue (Shift) the order is added after the current one.
 func order_to_point(p: Vector3, attack_move: bool, queue := false) -> void:
-	var own := _only_own(selected)
+	var own := _reachable(_only_own(selected), p)
 	if own.is_empty():
 		return
 	VFX.ground_ring(p, Color(3, 1.2, 0.3, 1) if attack_move else Color(0.5, 3, 1.2, 1), 1.2, 0.6)
@@ -343,7 +347,7 @@ func order_to_point(p: Vector3, attack_move: bool, queue := false) -> void:
 
 
 func _patrol_to(p: Vector3) -> void:
-	var own := _only_own(selected)
+	var own := _reachable(_only_own(selected), p)
 	if own.is_empty():
 		return
 	VFX.ground_ring(p, Color(0.6, 1.2, 3, 1), 1.2, 0.6)
@@ -352,6 +356,20 @@ func _patrol_to(p: Vector3) -> void:
 	var slots := _formation(own, p)
 	for i in own.size():
 		own[i].order_patrol(slots[i])
+
+
+## The units that can get to p: boats for water, everything else for land
+## (drones fly anywhere). A point nobody can reach buzzes and is ignored, so a
+## mixed group sent inland leaves its boats where they are.
+func _reachable(units: Array[Unit], p: Vector3) -> Array[Unit]:
+	var on_land := battlefield.terrain.is_land(p)
+	var out: Array[Unit] = []
+	for u in units:
+		if u.is_air or u.is_naval != on_land:
+			out.append(u)
+	if out.is_empty() and not units.is_empty():
+		Audio.play_ui("ui_error")
+	return out
 
 
 ## Spread a group in a loose grid around p, facing the move, heavy units in
@@ -401,6 +419,10 @@ func _fire_strike(screen: Vector2) -> void:
 	var p := ground_point(screen)
 	if p == Vector3.INF:
 		return
+	if economy != null and not economy.spend(STRIKE_COST):
+		Audio.play_ui("ui_error")
+		UnitVoice.alert("insufficient", 2.0)
+		return
 	strike_cooldown = STRIKE_COOLDOWN
 	strike_ready_changed.emit(false)
 	var warn := VFX.ground_ring(p, Color(4, 0.3, 0.2, 1), 9.0, STRIKE_DELAY)
@@ -432,7 +454,7 @@ func _fire_strike(screen: Vector2) -> void:
 	tw.tween_callback(func() -> void: Audio.play_3d("missile_incoming", p, 6.0, 1.0, 2))
 	tw.tween_property(missile, "global_position", p, 0.9).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tw.tween_callback(func() -> void:
-		battlefield.blast(p, 400.0, 10.0, 4.5, Battlefield.COALITION, 6.0)
+		battlefield.blast(p, 400.0, 10.0, 4.5, -1, 6.0)
 		VFX.burning(p, 12.0, 1.5)
 		trail.emitting = false
 		missile.queue_free())
@@ -445,5 +467,9 @@ func _call_airstrike(screen: Vector2) -> void:
 	var p := ground_point(screen)
 	if p == Vector3.INF:
 		return
+	if economy != null and not economy.spend(AIRSTRIKE_COST):
+		Audio.play_ui("ui_error")
+		UnitVoice.alert("insufficient", 2.0)
+		return
 	airstrike_cooldown = AIRSTRIKE_COOLDOWN
-	Airstrike.launch(battlefield, p, rig.camera.global_basis.x)
+	Airstrike.launch(battlefield, p, rig.camera.global_basis.x, -1)

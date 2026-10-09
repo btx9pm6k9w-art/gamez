@@ -76,6 +76,15 @@ func progress_of(id: String) -> float:
 	return progress[cat] / float(UnitDefs.get_def(id)["build_time"])
 
 
+## Pays for something outside the build queues (commander powers).
+func spend(amount: float) -> bool:
+	if credits < amount:
+		return false
+	credits -= amount
+	credits_changed.emit(credits)
+	return true
+
+
 func build(id: String) -> bool:
 	var def := UnitDefs.get_def(id)
 	var q: Array = queues[def["category"]]

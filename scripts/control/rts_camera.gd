@@ -220,4 +220,5 @@ func _process(delta: float) -> void:
 	# Depth of field: background beyond the focus point softens, mostly when zoomed in.
 	_attrs.dof_blur_far_distance = _dist * 1.25
 	_attrs.dof_blur_far_transition = _dist * 0.9
-	_attrs.dof_blur_amount = lerpf(0.08, 0.0, t) if GameSettings.preset >= GameSettings.Preset.HIGH else 0.0
+	# Depth of field is a cinematic extra: Ultra only, gameplay presets stay sharp.
+	_attrs.dof_blur_amount = lerpf(0.08, 0.0, t) if GameSettings.preset >= GameSettings.Preset.ULTRA else 0.0

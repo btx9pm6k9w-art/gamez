@@ -21,8 +21,8 @@ func setup(sel: SelectionManager) -> void:
 	selection = sel
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_slots = [
-		{"id": "strike", "key": "F", "name": "Precision Strike", "big": true, "total": SelectionManager.STRIKE_COOLDOWN},
-		{"id": "airstrike", "key": "G", "name": "Airstrike", "big": true, "total": SelectionManager.AIRSTRIKE_COOLDOWN},
+		{"id": "strike", "key": "F", "name": "Precision Strike  $%d  (hits your own units too)" % SelectionManager.STRIKE_COST, "big": true, "total": SelectionManager.STRIKE_COOLDOWN},
+		{"id": "airstrike", "key": "G", "name": "Airstrike  $%d  (hits your own units too)" % SelectionManager.AIRSTRIKE_COST, "big": true, "total": SelectionManager.AIRSTRIKE_COOLDOWN},
 		{"id": "attack_move", "key": "A", "name": "Attack-move", "big": false},
 		{"id": "stop", "key": "S", "name": "Stop", "big": false},
 		{"id": "hold", "key": "H", "name": "Hold position", "big": false},

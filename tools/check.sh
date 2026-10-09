@@ -14,7 +14,8 @@ if command -v gdparse >/dev/null; then
 		gdparse "$f" >/dev/null || { echo "FAIL $f"; status=1; }
 	done < <(git ls-files '*.gd')
 else
-	echo "gdparse not installed; skipping syntax check (pip install \"gdtoolkit==4.*\")"
+	echo "FAIL: gdparse not installed (pip install \"gdtoolkit==4.*\")"
+	status=1
 fi
 
 echo "== shadow check"
@@ -26,11 +27,17 @@ for g in "${GODOT:-}" /Applications/Godot.app/Contents/MacOS/Godot "$HOME/Downlo
 done
 if [ -n "$GODOT_BIN" ]; then
 	echo "== headless run with $("$GODOT_BIN" --version | head -n1)"
-	"$GODOT_BIN" --headless --path . --import >/dev/null 2>&1 || true
 	log=$(mktemp)
-	"$GODOT_BIN" --headless --path . --quit-after 300 >"$log" 2>&1 || true
-	if grep -E "SCRIPT ERROR|SHADER ERROR|Parse Error|Failed to load" "$log"; then
-		echo "Errors found (full log: $log)"
+	if ! "$GODOT_BIN" --headless --path . --import >"$log" 2>&1; then
+		echo "FAIL: import exited with an error (log: $log)"
+		status=1
+	fi
+	if ! "$GODOT_BIN" --headless --path . --quit-after 300 >>"$log" 2>&1; then
+		echo "FAIL: the game exited with an error (log: $log)"
+		status=1
+	fi
+	if grep -E "SCRIPT ERROR|SHADER ERROR|Parse Error|Failed to load|Failed loading|Compile Error|ERROR: .*res://" "$log"; then
+		echo "FAIL: errors in the Godot output (full log: $log)"
 		status=1
 	else
 		echo "No script or shader errors."

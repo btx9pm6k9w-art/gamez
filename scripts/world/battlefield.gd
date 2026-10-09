@@ -24,6 +24,14 @@ var _world_env: WorldEnvironment
 var _physical_sky: PhysicalSkyMaterial
 var _night_sky: ProceduralSkyMaterial
 var _nav_region: NavigationRegion3D
+## Vehicles path on their own navmesh, baked with more clearance, so tanks are
+## not routed through gaps only infantry fit. Same map, so all units still
+## avoid each other; the navigation layer picks the mesh.
+var _nav_region_heavy: NavigationRegion3D
+var _nav_template_heavy: NavigationMesh
+var _nav_pending_bakes := 0
+const NAV_LAYER_INFANTRY := 1
+const NAV_LAYER_VEHICLE := 2
 var _nav_template: NavigationMesh
 var _nav_baking := false
 var _nav_pending := false
@@ -845,17 +853,25 @@ func _rubble(node: Node3D) -> void:
 func _build_navigation() -> void:
 	_nav_region = NavigationRegion3D.new()
 	_nav_region.name = "Navigation"
+	_nav_region.navigation_layers = NAV_LAYER_INFANTRY
 	add_child(_nav_region)
+	_nav_region_heavy = NavigationRegion3D.new()
+	_nav_region_heavy.name = "NavigationVehicles"
+	_nav_region_heavy.navigation_layers = NAV_LAYER_VEHICLE
+	add_child(_nav_region_heavy)
 	_nav_template = NavigationMesh.new()
 	_nav_template.cell_size = 0.5
 	_nav_template.cell_height = 0.25
-	_nav_template.agent_radius = 1.0
+	_nav_template.agent_radius = 0.6
 	_nav_template.agent_height = 2.0
 	_nav_template.agent_max_climb = 0.75
 	_nav_template.agent_max_slope = 38.0
 	_nav_template.edge_max_error = 1.3
 	_nav_template.detail_sample_distance = 4.0
 	_nav_template.filter_baking_aabb = AABB(Vector3(0, -8, 0), Vector3(MAP_SIZE, 60, MAP_SIZE))
+	_nav_template_heavy = _nav_template.duplicate() as NavigationMesh
+	_nav_template_heavy.agent_radius = 1.8
+	_nav_template_heavy.agent_max_slope = 32.0
 	rebake_navigation()
 
 
@@ -877,16 +893,22 @@ func rebake_navigation() -> void:
 			var a := TAU * k / 8.0
 			poly.append(Vector3(c.x + cos(a) * r, 0, c.z + sin(a) * r))
 		src.add_projected_obstruction(poly, c.y - 3.0, 10.0, false)
+	_nav_pending_bakes = 2
 	var nm := _nav_template.duplicate() as NavigationMesh
-	NavigationServer3D.bake_from_source_geometry_data_async(nm, src, _on_nav_baked.bind(nm))
+	NavigationServer3D.bake_from_source_geometry_data_async(nm, src, _on_nav_baked.bind(nm, _nav_region))
+	var nm_heavy := _nav_template_heavy.duplicate() as NavigationMesh
+	NavigationServer3D.bake_from_source_geometry_data_async(nm_heavy, src, _on_nav_baked.bind(nm_heavy, _nav_region_heavy))
 
 
-func _on_nav_baked(nm: NavigationMesh) -> void:
-	_apply_navmesh.call_deferred(nm)
+func _on_nav_baked(nm: NavigationMesh, region: NavigationRegion3D) -> void:
+	_apply_navmesh.call_deferred(nm, region)
 
 
-func _apply_navmesh(nm: NavigationMesh) -> void:
-	_nav_region.navigation_mesh = nm
+func _apply_navmesh(nm: NavigationMesh, region: NavigationRegion3D) -> void:
+	region.navigation_mesh = nm
+	_nav_pending_bakes -= 1
+	if _nav_pending_bakes > 0:
+		return
 	_nav_baking = false
 	if not _nav_ready_emitted:
 		_nav_ready_emitted = true
@@ -942,18 +964,75 @@ func _on_unit_died(u: Unit) -> void:
 	unit_killed.emit(u)
 
 
+## Nearest enemy within radius that the seeker can actually shoot: in its
+## target class and, for direct-fire weapons, in line of sight. Only the four
+## nearest candidates get the sight test, which keeps the scan cheap.
 func find_target(seeker: Unit, radius: float) -> Unit:
-	var best: Unit = null
-	var best_d := radius
+	var found: Array = [] # [distance, unit]
 	var enemy_team := 1 - seeker.team
 	for other: Unit in units[enemy_team]:
 		if not is_instance_valid(other) or not other.is_alive() or not seeker._can_target(other):
 			continue
 		var d := seeker.global_position.distance_to(other.global_position)
-		if d < best_d:
-			best_d = d
-			best = other
-	return best
+		if d < radius:
+			found.append([d, other])
+	found.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
+	for i in mini(found.size(), 4):
+		var u: Unit = found[i][1]
+		if seeker.has_line_of_fire(u):
+			return u
+	return null
+
+
+## Props that stop direct fire, with the height of their solid part in metres.
+## Trees, palms, shrubs and pumpjacks are see-through enough to shoot past.
+const BLOCKER_HEIGHT := {"building": 5.5, "wall": 2.4, "container": 2.6, "fuel_tank": 5.0, "rock": 2.8}
+var _blockers: Array[Dictionary] = []
+
+
+## First point where a straight shot from a to b hits the ground or a solid
+## prop, or Vector3.INF when the way is clear. skip_start ignores cover right
+## next to the shooter (a soldier leaning out from a wall can still fire).
+func line_blocked(a: Vector3, b: Vector3, skip_start := 1.5, skip_end := 0.8) -> Vector3:
+	var flat := Vector2(b.x - a.x, b.z - a.z)
+	var length := flat.length()
+	if length < 0.5:
+		return Vector3.INF
+	var best_t := 2.0
+	# Ground: sample every 2 m; the line must clear the ridge between.
+	var steps := maxi(int(length / 2.0), 2)
+	for i in range(1, steps):
+		var t := i / float(steps)
+		var q := a.lerp(b, t)
+		if q.y < terrain.height_at(q) - 0.25 and t * length > skip_start:
+			best_t = t
+			break
+	if _blockers.is_empty():
+		for prop in props:
+			if BLOCKER_HEIGHT.has(prop["kind"]):
+				_blockers.append(prop)
+	for prop in _blockers:
+		if not prop["alive"]:
+			continue
+		var h: float = BLOCKER_HEIGHT[prop["kind"]]
+		var c: Vector3 = (prop["node"] as Node3D).global_position
+		var to_c := Vector2(c.x - a.x, c.z - a.z)
+		var r: float = float(prop["radius"]) * 0.85
+		# Someone standing in a prop's footprint is leaning out from it.
+		if to_c.length() < r or (to_c - flat).length() < r:
+			continue
+		var t := clampf(to_c.dot(flat) / (length * length), 0.0, 1.0)
+		if t >= best_t or t * length < skip_start or (1.0 - t) * length < skip_end:
+			continue
+		if (to_c - flat * t).length() > r:
+			continue
+		# Step back to where the line enters the prop's footprint.
+		var dist := (to_c - flat * t).length()
+		var entry := t - sqrt(maxf(r * r - dist * dist, 0.0)) / length
+		var q := a.lerp(b, maxf(entry, 0.0))
+		if q.y < c.y + h:
+			best_t = maxf(entry, 0.0)
+	return a.lerp(b, best_t) if best_t <= 1.0 else Vector3.INF
 
 
 ## Explosion with splash damage, crater and prop destruction. team is the
