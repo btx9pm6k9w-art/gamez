@@ -16,6 +16,8 @@ static func paint(faction: String) -> Color:
 			return Color(0.60, 0.53, 0.40)
 		"iran":
 			return Color(0.30, 0.33, 0.22)
+		"navy":
+			return Color(0.40, 0.43, 0.46)
 	return Color(0.08, 0.09, 0.11)
 
 
@@ -148,6 +150,10 @@ static func build(model: String, faction: String) -> Node3D:
 			_truck(root, faction, false)
 		"drone":
 			_drone(root, faction)
+		"patrol_boat":
+			_patrol_boat(root, faction)
+		"fast_boat":
+			_fast_boat(root, faction)
 	return root
 
 
@@ -291,3 +297,71 @@ static func _drone(root: Node3D, faction: String) -> void:
 	engine.name = "Engine"
 	engine.position = Vector3(0, 0.08, 1.9)
 	root.add_child(engine)
+
+
+## Pointed hull: deck outline with a sharp bow at -Z, sides sloping to a
+## narrower keel. length along Z, beam along X.
+static func _hull(root: Node3D, length: float, beam: float, depth: float, material: Material) -> void:
+	var half := beam * 0.5
+	var bow := -length * 0.5
+	var stern := length * 0.5
+	var deck := [Vector3(0, 0, bow), Vector3(half, 0, bow + length * 0.3), Vector3(half, 0, stern), Vector3(-half, 0, stern), Vector3(-half, 0, bow + length * 0.3)]
+	var keel := []
+	for v: Vector3 in deck:
+		keel.append(Vector3(v.x * 0.35, -depth, v.z * 0.92))
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in 3: # deck
+		st.add_vertex(deck[0])
+		st.add_vertex(deck[i + 1])
+		st.add_vertex(deck[i + 2])
+	for i in 5: # sides
+		var j := (i + 1) % 5
+		for v in [deck[i], keel[i], keel[j], deck[i], keel[j], deck[j]]: # clockwise from outside
+			st.add_vertex(v)
+	st.generate_normals()
+	var mesh := st.commit()
+	_add(root, mesh, Vector3.ZERO, material, Vector3.ZERO)
+
+
+## Mk VI-style patrol boat: grey hull, wheelhouse with mast and radar, a
+## stabilised 25 mm autocannon on the bow.
+static func _patrol_boat(root: Node3D, faction: String) -> void:
+	var grey := mat("paint:navy")
+	_hull(root, 12.0, 3.2, 1.0, grey)
+	_box(root, Vector3(2.0, 1.3, 3.4), Vector3(0, 0.65, 0.6), grey) # wheelhouse
+	_box(root, Vector3(1.9, 0.45, 1.0), Vector3(0, 1.1, -0.9), mat("glass"), Vector3(-25, 0, 0))
+	_cyl(root, 0.05, 2.4, Vector3(0, 2.4, 1.0), mat("dark"), Vector3.ZERO, 6) # mast
+	var radar := _box(root, Vector3(1.0, 0.08, 0.2), Vector3(0, 3.3, 1.0), mat("dark"))
+	radar.name = "Radar"
+	_box(root, Vector3(1.4, 0.06, 0.08), Vector3(0, 1.32, 2.0), mat("glow:" + faction))
+	var turret := _pivot(root, "Turret", Vector3(0, 0.3, -2.6))
+	_cyl(turret, 0.45, 0.4, Vector3(0, 0.2, 0), grey, Vector3.ZERO, 12)
+	_box(turret, Vector3(0.5, 0.35, 0.8), Vector3(0, 0.55, 0), grey)
+	_cyl(turret, 0.06, 1.6, Vector3(0, 0.55, -1.1), mat("steel"), Vector3(90, 0, 0), 8)
+	var muzzle := Marker3D.new()
+	muzzle.name = "Muzzle"
+	muzzle.position = Vector3(0, 0.55, -1.95)
+	turret.add_child(muzzle)
+	_headlight(root, Vector3(0, 1.4, -0.4))
+	_pivot(root, "Wake", Vector3(0, 0.0, 5.6))
+
+
+## IRGC fast attack craft: low dark speedboat, open cockpit, twin outboards
+## and a heavy machine gun at the bow.
+static func _fast_boat(root: Node3D, faction: String) -> void:
+	var hull := mat("paint:" + faction)
+	_hull(root, 6.5, 2.0, 0.7, hull)
+	_box(root, Vector3(1.4, 0.5, 1.0), Vector3(0, 0.25, 0.4), mat("dark"))
+	_box(root, Vector3(1.3, 0.35, 0.08), Vector3(0, 0.6, -0.1), mat("glass"), Vector3(-30, 0, 0))
+	for s in [-0.4, 0.4]:
+		_box(root, Vector3(0.3, 0.8, 0.4), Vector3(s, 0.1, 3.35), mat("dark"))
+	var turret := _pivot(root, "Turret", Vector3(0, 0.2, -1.8))
+	_cyl(turret, 0.04, 0.6, Vector3(0, 0.3, 0), mat("dark"), Vector3.ZERO, 6)
+	_box(turret, Vector3(0.18, 0.18, 0.9), Vector3(0, 0.6, -0.2), mat("dark"))
+	var muzzle := Marker3D.new()
+	muzzle.name = "Muzzle"
+	muzzle.position = Vector3(0, 0.6, -0.7)
+	turret.add_child(muzzle)
+	_box(root, Vector3(0.9, 0.04, 0.6), Vector3(0, 0.62, 1.2), mat("glow:" + faction)) # flag panel
+	_pivot(root, "Wake", Vector3(0, 0.0, 3.4))

@@ -54,6 +54,9 @@ func _spawn_forces() -> void:
 		battlefield.spawn_unit("k9", c, Vector3(76 + k * 3.0, 0, 154), face_ne)
 	for k in 2:
 		battlefield.spawn_unit("laser_ad", c, Vector3(58 + k * 10.0, 0, 166), face_ne)
+	# Patrol boats alongside the pier.
+	for k in 2:
+		battlefield.spawn_unit("patrol_boat", c, Vector3(30, 0, 164 + k * 12.0), deg_to_rad(90.0))
 
 	var face_sw := deg_to_rad(135.0)
 	# Village garrison.
@@ -69,6 +72,9 @@ func _spawn_forces() -> void:
 		battlefield.spawn_unit("karrar", i, Vector3(140 + k * 8.0, 0, 62), face_sw)
 	for k in 4:
 		battlefield.spawn_unit("irgc", i, Vector3(140 + k * 3.0, 0, 66), face_sw)
+	# Fast attack craft lurking in the lee of the island.
+	for k in 3:
+		battlefield.spawn_unit("fast_boat", i, Vector3(8 + k * 6.0, 0, 44), deg_to_rad(180.0))
 
 
 func _on_unit_killed(_u: Unit) -> void:

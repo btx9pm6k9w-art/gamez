@@ -1,7 +1,8 @@
 class_name Unit
 extends Node3D
-## A ground or air unit: movement on the navigation mesh with local
-## avoidance, auto-targeting, turret aim, weapons and death effects.
+## A ground, air or naval unit: movement on the navigation mesh with local
+## avoidance (boats steer around the coast on their own), auto-targeting,
+## turret aim, weapons and death effects.
 
 signal died(unit: Unit)
 
@@ -15,6 +16,7 @@ var battlefield: Node # Battlefield; untyped to avoid a cyclic class reference
 var hp := 100.0
 var max_hp := 100.0
 var is_air := false
+var is_naval := false
 var state := State.IDLE
 var target: Unit
 var move_goal := Vector3.ZERO
@@ -40,6 +42,9 @@ var _alive := true
 var _trail: GPUParticles3D
 var _engine: AudioStreamPlayer3D
 var _engine_retry := 0.0
+var _wake: GPUParticles3D
+var _bob_phase := randf() * TAU
+var _roll := 0.0
 
 
 func setup(id: String, p_team: int, bf: Node) -> void:
@@ -51,6 +56,7 @@ func setup(id: String, p_team: int, bf: Node) -> void:
 	max_hp = def["hp"]
 	hp = max_hp
 	is_air = def.get("air", false)
+	is_naval = def.get("naval", false)
 	_cooldown = randf() * float(def["cooldown"])
 	_scan_timer = randf() * 0.3
 
@@ -90,6 +96,13 @@ func _ready() -> void:
 		if engine:
 			_trail.position = engine.position
 		_trail.emitting = true
+	elif is_naval:
+		_wake = VFX.make_wake(r * 0.6)
+		var stern := model.find_child("Wake", true, false) as Node3D
+		if stern:
+			_wake.position = stern.position
+		add_child(_wake)
+		_wake.emitting = true
 	else:
 		agent = NavigationAgent3D.new()
 		agent.radius = r
@@ -131,7 +144,8 @@ func order_move(pos: Vector3, attack_move := false) -> void:
 	move_goal = pos
 	target = null
 	state = State.ATTACK_MOVE if attack_move else State.MOVE
-	agent.target_position = pos
+	if agent:
+		agent.target_position = pos
 
 
 func order_attack(t: Unit) -> void:
@@ -164,6 +178,9 @@ func _physics_process(delta: float) -> void:
 	_scan_timer -= delta
 	if is_air:
 		_process_drone(delta)
+		return
+	if is_naval:
+		_process_boat(delta)
 		return
 
 	if target != null and (not is_instance_valid(target) or not target.is_alive()):
@@ -202,21 +219,122 @@ func _steer_to(p: Vector3) -> Vector3:
 	to.y = 0.0
 	if to.length() < 0.05:
 		return Vector3.ZERO
-	var slope: float = battlefield.terrain.slope_at(global_position)
-	var speed: float = float(def["speed"]) * clampf(1.0 - slope * 1.6, 0.35, 1.0)
+	var terrain: Terrain = battlefield.terrain
+	var slope := terrain.slope_at(global_position)
+	var speed: float = float(def["speed"]) * clampf(1.0 - slope * 1.6, 0.35, 1.0) * terrain.ground_speed_factor(global_position)
 	return to.normalized() * speed
+
+
+# --- Boats ----------------------------------------------------------------
+
+## Boats steer straight for their goal and feel ahead for the coastline,
+## swinging left or right until the way is clear. In combat they keep moving
+## and circle the target, like real fast-attack craft.
+func _process_boat(delta: float) -> void:
+	if target != null and (not is_instance_valid(target) or not target.is_alive()):
+		target = null
+		if state == State.ATTACK:
+			state = State.IDLE
+	if _scan_timer <= 0.0:
+		_scan_timer = 0.3
+		_auto_target()
+	var goal := Vector3.INF
+	match state:
+		State.MOVE:
+			goal = move_goal
+		State.ATTACK_MOVE:
+			goal = move_goal if target == null else _orbit_point()
+		State.ATTACK:
+			goal = _orbit_point()
+	if target != null and global_position.distance_to(target.global_position) <= float(def["range"]):
+		_aim_and_fire(delta)
+	var want := Vector3.ZERO
+	if goal != Vector3.INF:
+		var to := Vector3(goal.x - global_position.x, 0, goal.z - global_position.z)
+		if to.length() < 3.0 and state == State.MOVE:
+			state = State.IDLE
+		elif to.length() > 0.5:
+			want = _clear_heading(to.normalized()) * float(def["speed"])
+	# Keep clear of other boats.
+	for t in 2:
+		for other: Unit in battlefield.units[t]:
+			if other == self or not other.is_naval or not is_instance_valid(other):
+				continue
+			var d := global_position - other.global_position
+			d.y = 0.0
+			var min_d: float = def["radius"] + other.def["radius"] + 1.0
+			if d.length() < min_d and d.length() > 0.01:
+				want += d.normalized() * (min_d - d.length()) * 3.0
+	var accel := 4.0 if want.length() > _velocity.length() else 2.5
+	_velocity = _velocity.move_toward(want, accel * delta)
+
+
+func _orbit_point() -> Vector3:
+	if target == null:
+		return global_position
+	var to := target.global_position - global_position
+	to.y = 0.0
+	var dist := to.length()
+	var r: float = float(def["range"]) * 0.75
+	if dist > r * 1.3:
+		return target.global_position
+	var side := Vector3(-to.z, 0, to.x).normalized() * (1.0 if get_instance_id() % 2 == 0 else -1.0)
+	return global_position + side * 12.0 - to.normalized() * (r - dist)
+
+
+func _clear_heading(dir: Vector3) -> Vector3:
+	var terrain: Terrain = battlefield.terrain
+	var look := 4.0 + _velocity.length() * 0.8 + float(def["radius"])
+	for a in [0.0, 0.4, -0.4, 0.8, -0.8, 1.3, -1.3, 2.0, -2.0, PI]:
+		var d := dir.rotated(Vector3.UP, a)
+		var probe := global_position + d * look
+		var mid := global_position + d * look * 0.5
+		if not terrain.is_land(probe) and not terrain.is_land(mid) and probe == terrain.clamp_to_map(probe, 3.0):
+			return d
+	return -dir
+
+
+func _process_boat_visual(delta: float) -> void:
+	var terrain: Terrain = battlefield.terrain
+	var v := _velocity
+	var speed := v.length()
+	var next := global_position + v * delta
+	if terrain.is_land(next) or next != terrain.clamp_to_map(next, 2.0):
+		_velocity *= -0.2
+	else:
+		global_position = next
+	var turn := 0.0
+	if speed > 0.5:
+		var desired_yaw := atan2(-v.x, -v.z)
+		turn = angle_difference(_yaw, desired_yaw)
+		_yaw = lerp_angle(_yaw, desired_yaw, clampf(delta * 2.2, 0.0, 1.0))
+	var k := speed / float(def["speed"])
+	_roll = lerpf(_roll, clampf(-turn * 0.5, -0.25, 0.25) * k, clampf(delta * 3.0, 0.0, 1.0))
+	var t := Time.get_ticks_msec() / 1000.0
+	var pitch := k * 0.08 + sin(t * 1.9 + _bob_phase) * 0.025
+	global_position.y = Terrain.WATER_LEVEL + sin(t * 1.4 + _bob_phase) * 0.12 + k * 0.15
+	basis = Basis.from_euler(Vector3(pitch, _yaw, _roll + sin(t * 1.1 + _bob_phase) * 0.03))
+	if _wake:
+		_wake.amount_ratio = clampf(k * 1.2, 0.05, 1.0)
+
+
+## Weapon range, extended by up to 25% when firing down from high ground.
+func range_to(t: Unit) -> float:
+	var up := global_position.y - t.global_position.y
+	return float(def["range"]) * (1.0 + clampf(up * 0.03, 0.0, 0.25))
 
 
 func _engage(delta: float) -> void:
 	var dist := global_position.distance_to(target.global_position)
-	if dist > float(def["range"]) * 0.95:
+	var reach := range_to(target)
+	if dist > reach * 0.95:
 		_repath_timer -= delta
 		if _repath_timer <= 0.0:
 			_repath_timer = 0.5
 			agent.target_position = target.global_position
 		if not agent.is_navigation_finished():
 			_desired = _steer_to(agent.get_next_path_position())
-	if dist <= float(def["range"]):
+	if dist <= reach:
 		_aim_and_fire(delta)
 
 
@@ -227,7 +345,7 @@ func _on_velocity_computed(safe: Vector3) -> void:
 func _update_engine_sound(delta: float, speed: float) -> void:
 	if _engine == null:
 		_engine_retry -= delta
-		var wants: bool = is_air or def["model"] == "tank" or def["model"].ends_with("truck")
+		var wants: bool = is_air or is_naval or def["model"] == "tank" or def["model"].ends_with("truck")
 		if wants and _engine_retry <= 0.0:
 			_engine_retry = 1.0
 			_engine = Audio.attach_loop(self, "drone_engine" if is_air else "engine", 0.0 if is_air else -12.0)
@@ -243,6 +361,9 @@ func _process(delta: float) -> void:
 		return
 	_update_engine_sound(delta, _velocity.length())
 	if is_air:
+		return
+	if is_naval:
+		_process_boat_visual(delta)
 		return
 	var v := _velocity
 	v.y = 0.0
@@ -341,6 +462,19 @@ func _fire() -> void:
 		"laser":
 			VFX.laser(from, aim)
 			target.take_damage(def["damage"], team)
+		"autocannon":
+			# Three-round burst of small explosive shells.
+			for k in 3:
+				var spread := Vector3(randf_range(-1, 1), randf_range(-0.3, 0.6), randf_range(-1, 1)) * (0.4 + k * 0.4)
+				var hit_point := aim + spread
+				get_tree().create_timer(k * 0.06).timeout.connect(func() -> void:
+					if not _alive:
+						return
+					var f := muzzle.global_position if muzzle else aim_point()
+					VFX.muzzle_flash(f, 0.5, hit_point - f)
+					VFX.tracer(f, hit_point, Color(5.0, 3.0, 1.2), 0.09, 0.08)
+					VFX.small_hit(hit_point, battlefield.terrain.is_land(hit_point) or hit_point.y > 0.8)
+					battlefield.blast(hit_point, float(def["damage"]), float(def["splash"]), 0.0, team, 0.0))
 		"drone_launch":
 			VFX.muzzle_flash(from, 1.0, Vector3.UP)
 			var drone: Unit = battlefield.spawn_unit("shahed", team, from)
@@ -393,6 +527,18 @@ func _die() -> void:
 	_alive = false
 	selected = false
 	died.emit(self)
+	if is_naval:
+		VFX.explosion(global_position + Vector3.UP, 2.0 if def["radius"] > 2.0 else 1.4, VFX.Surface.AIR)
+		VFX.burning(global_position + Vector3.UP * 0.5, 10.0, 0.9, false)
+		if _wake:
+			_wake.emitting = false
+		var sink := create_tween()
+		sink.tween_property(self, "global_position:y", -3.5, 6.0).set_ease(Tween.EASE_IN)
+		sink.parallel().tween_property(self, "rotation:x", -0.5, 6.0)
+		sink.tween_callback(queue_free)
+		set_physics_process(false)
+		set_process(false)
+		return
 	if is_air:
 		VFX.explosion(global_position, 1.2, VFX.Surface.AIR)
 		if _trail:

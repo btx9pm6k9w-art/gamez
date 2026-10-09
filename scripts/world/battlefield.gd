@@ -33,6 +33,10 @@ var _particle_collider: GPUParticlesCollisionHeightField3D
 var _wrecks: Node3D
 var _burned: StandardMaterial3D
 var _rng := RandomNumberGenerator.new()
+var _pumpjacks: Array[Node3D] = []
+var _lamp: Node3D
+var _ships: Array[Dictionary] = []
+var _anim_t := 0.0
 
 
 func build(seed_value: int) -> void:
@@ -42,6 +46,7 @@ func build(seed_value: int) -> void:
 	_build_sea()
 	_build_skirt()
 	_build_props()
+	_build_landmarks()
 	_build_navigation()
 	_particle_collider = GPUParticlesCollisionHeightField3D.new()
 	_particle_collider.size = Vector3(MAP_SIZE, 60, MAP_SIZE)
@@ -378,7 +383,8 @@ func _random_land_point(minx: float, maxx: float, minz: float, maxz: float, max_
 
 
 func _clear_of_bases(p: Vector3) -> bool:
-	for c in [Vector3(64, 0, 160), Vector3(150, 0, 52), Vector3(100, 0, 100)]:
+	var oil := Terrain.OIL_FIELD
+	for c in [Vector3(64, 0, 160), Vector3(150, 0, 52), Vector3(100, 0, 100), Vector3(oil.x, 0, oil.y)]:
 		if Vector2(p.x, p.z).distance_to(Vector2(c.x, c.z)) < 16.0:
 			return false
 	return true
@@ -396,7 +402,7 @@ func _build_props() -> void:
 		rock_meshes.append(_rock_mesh(40 + i))
 	for i in 55:
 		var p := _random_land_point(45, 188, 4, 188, 0.6)
-		if p == Vector3.INF or not _clear_of_bases(p):
+		if p == Vector3.INF or not _clear_of_bases(p) or terrain.dune_at(p) > 0.3:
 			continue
 		var mi := MeshInstance3D.new()
 		mi.mesh = rock_meshes[i % 4]
@@ -458,6 +464,164 @@ func _build_props() -> void:
 			wall.position = p + Vector3.UP * 1.6
 			wall.rotation.y = -ang + PI * 0.5
 			_add_prop(wall, "wall", 1.7, 300.0)
+
+
+## Biome dressing and landmarks: ghaf trees in the wadi and on the plain,
+## mangroves along the creek, a carpet of desert shrubs, sandstone pillars in
+## the dunes, the oil field, the offshore platform, the island lighthouse, the
+## coalition pier with containers, dhows at the creek head and far shipping.
+func _build_landmarks() -> void:
+	# Ghaf trees: thick along the wadi, sparse on the plain.
+	for i in 60:
+		var p: Vector3
+		if i < 34:
+			var seg := _rng.randi_range(0, Terrain.WADI.size() - 2)
+			var a: Vector2 = Terrain.WADI[seg]
+			var b: Vector2 = Terrain.WADI[seg + 1]
+			var q := a.lerp(b, _rng.randf()) + Vector2(_rng.randf_range(-9, 9), _rng.randf_range(-9, 9))
+			p = Vector3(q.x, 0, q.y)
+		else:
+			p = Vector3(_rng.randf_range(60, 185), 0, _rng.randf_range(60, 120))
+		p.y = terrain.height_at(p)
+		if not terrain.is_land(p) or terrain.slope_at(p) > 0.3 or not _clear_of_bases(p) or terrain.dune_at(p) > 0.2:
+			continue
+		var tree := SetDressing.ghaf(_rng)
+		tree.position = p
+		tree.rotation.y = _rng.randf() * TAU
+		tree.scale = Vector3.ONE * _rng.randf_range(0.8, 1.25)
+		_add_prop(tree, "tree", 1.0, 80.0)
+
+	# Mangroves fringe the creek banks just above the waterline.
+	var placed := 0
+	for attempt in 400:
+		if placed >= 40:
+			break
+		var p := Vector3(_rng.randf_range(30, Terrain.CREEK_END.x + 2), 0, _rng.randf_range(Terrain.CREEK_END.y - 16, Terrain.CREEK_END.y + 16))
+		var h := terrain.height_at(p)
+		if h < 0.45 or h > 1.3:
+			continue
+		p.y = h - 0.3
+		var m := SetDressing.mangrove(_rng)
+		m.position = p
+		m.rotation.y = _rng.randf() * TAU
+		m.scale = Vector3.ONE * _rng.randf_range(0.8, 1.3)
+		_add_prop(m, "shrub", 1.2, 40.0)
+		placed += 1
+
+	# Desert shrubs: one MultiMesh, thousands of plants, a single draw call.
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = SetDressing.shrub_mesh()
+	var xforms: Array[Transform3D] = []
+	for attempt in 3000:
+		var p := Vector3(_rng.randf_range(30, 190), 0, _rng.randf_range(2, 190))
+		var h := terrain.height_at(p)
+		if h < 0.9 or terrain.slope_at(p) > 0.35 or terrain.dune_at(p) > 0.6:
+			continue
+		if not _clear_of_bases(p) and _rng.randf() < 0.8:
+			continue
+		var s := _rng.randf_range(0.5, 1.4) * (1.4 if terrain.gravel_at(p) > 0.3 else 1.0)
+		xforms.append(Transform3D(Basis(Vector3.UP, _rng.randf() * TAU).scaled(Vector3(s, s * _rng.randf_range(0.7, 1.2), s)), Vector3(p.x, h - 0.05, p.z)))
+	mm.instance_count = xforms.size()
+	for i in xforms.size():
+		mm.set_instance_transform(i, xforms[i])
+	var shrubs := MultiMeshInstance3D.new()
+	shrubs.name = "Shrubs"
+	shrubs.multimesh = mm
+	add_child(shrubs)
+
+	# Sandstone pillars and mushroom rocks rising out of the dunes.
+	for i in 9:
+		var p := Vector3(_rng.randf_range(130, 186), 0, _rng.randf_range(112, 186))
+		if not _clear_of_bases(p):
+			continue
+		p.y = terrain.height_at(p) - 0.5
+		var pillar := SetDressing.sandstone_pillar(_rng)
+		pillar.position = p
+		pillar.scale = Vector3.ONE * _rng.randf_range(0.8, 1.4)
+		_add_prop(pillar, "rock", 2.2, 900.0)
+
+	# Oil field: nodding pumpjacks, a flare stack and storage on the dune pad.
+	var oil := Vector3(Terrain.OIL_FIELD.x, 0, Terrain.OIL_FIELD.y)
+	for i in 3:
+		var p := oil + Vector3(-7 + i * 7.0, 0, -4 + (i % 2) * 6.0)
+		p.y = terrain.height_at(p)
+		var pj := SetDressing.pumpjack()
+		pj.position = p
+		pj.rotation.y = 0.4
+		_add_prop(pj, "pumpjack", 2.5, 260.0)
+		_pumpjacks.append(pj)
+	var flare := SetDressing.flare_stack(14.0)
+	flare.position = oil + Vector3(9, terrain.height_at(oil + Vector3(9, 0, 7)), 7)
+	_add_prop(flare, "flare", 1.0, 400.0)
+	VFX.burning(flare.position + Vector3.UP * 14.5, 1.0e9, 0.8, false)
+
+	# Offshore wellhead platform in the open sea, flare burning day and night.
+	var plat := SetDressing.offshore_platform()
+	plat.position = Vector3(12, -6.0, 108)
+	_add_prop(plat, "platform", 8.0, 1500.0)
+	var tip := plat.find_child("FlareTip", true, false) as Node3D
+	VFX.burning(tip.global_position, 1.0e9, 1.0, false)
+
+	# Island lighthouse with a sweeping beam at night.
+	var isl := Vector3(Terrain.ISLAND.x, 0, Terrain.ISLAND.y)
+	var lh := SetDressing.lighthouse()
+	lh.position = isl + Vector3(0, terrain.height_at(isl), 0)
+	_add_prop(lh, "building", 2.0, 600.0)
+	_lamp = lh.find_child("Lamp", true, false) as Node3D
+
+	# Coalition harbour: pier into the sea, containers on the quay.
+	var pier_root := Vector3(46, 0, 170)
+	var pier := SetDressing.pier(22.0)
+	pier.position = pier_root
+	add_child(pier)
+	var colors := [Color(0.15, 0.3, 0.55), Color(0.6, 0.18, 0.12), Color(0.85, 0.85, 0.82), Color(0.25, 0.42, 0.3)]
+	for i in 6:
+		var c := SetDressing.container(colors[i % 4])
+		var p := Vector3(50 + (i % 3) * 3.0, 0, 182 + (i / 3) * 0.0)
+		p.y = terrain.height_at(p) + (i / 3) * 2.6
+		c.position = p
+		c.rotation.y = 0.05 * _rng.randf_range(-1, 1)
+		_add_prop(c, "container", 2.0, 220.0)
+
+	# Fishing dhows moored at the head of the creek, rocking gently.
+	for i in 2:
+		var d := SetDressing.dhow()
+		d.position = Vector3(Terrain.CREEK_END.x - 14 - i * 9.0, 0.0, Terrain.CREEK_END.y + 1.0 + i * 1.5)
+		d.rotation.y = PI * 0.5 + _rng.randf_range(-0.2, 0.2)
+		_add_prop(d, "boat", 3.0, 120.0)
+		_ships.append({"node": d, "speed": 0.0, "phase": _rng.randf() * TAU})
+
+	# Shipping lane far out in the Strait: tankers and a destroyer on patrol.
+	for s in [["tanker", Vector3(-150, 0, -200), 3.0], ["tanker", Vector3(-230, 0, 260), -2.2], ["destroyer", Vector3(-95, 0, 60), 1.4]]:
+		var ship := SetDressing.big_ship(s[0])
+		ship.position = s[1]
+		ship.rotation.y = 0.0 if s[2] < 0.0 else PI
+		ship.scale = Vector3.ONE * 0.6
+		add_child(ship)
+		_ships.append({"node": ship, "speed": s[2], "phase": _rng.randf() * TAU})
+
+
+func _animate_landmarks(delta: float) -> void:
+	_anim_t += delta
+	for pj in _pumpjacks:
+		if is_instance_valid(pj):
+			var beam := pj.find_child("Beam", false, false) as Node3D
+			if beam:
+				beam.rotation.x = sin(_anim_t * 1.3 + pj.position.x) * 0.32
+	if _lamp and is_instance_valid(_lamp):
+		_lamp.rotation.y += delta * 0.9
+	for s in _ships:
+		var n: Node3D = s["node"]
+		if not is_instance_valid(n):
+			continue
+		var speed: float = s["speed"]
+		n.position.z += speed * delta
+		if absf(n.position.z) > 700.0:
+			n.position.z = -signf(speed) * 690.0
+		var ph: float = s["phase"]
+		n.position.y = sin(_anim_t * 0.9 + ph) * 0.12 - (0.0 if speed == 0.0 else 3.0)
+		n.rotation.z = sin(_anim_t * 0.7 + ph) * 0.02
 
 
 func _house(size: Vector3) -> Node3D:
@@ -541,7 +705,7 @@ func _destroy_prop(prop: Dictionary) -> void:
 	var node: Node3D = prop["node"]
 	var pos := node.global_position
 	match prop["kind"]:
-		"palm":
+		"palm", "tree":
 			# Trees topple away from the blast and stay as debris.
 			var tw := create_tween()
 			tw.tween_property(node, "rotation:z", deg_to_rad(_rng.randf_range(70, 88)) * (1 if _rng.randf() > 0.5 else -1), 0.9).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_QUAD)
@@ -553,6 +717,31 @@ func _destroy_prop(prop: Dictionary) -> void:
 		"building":
 			VFX.explosion(pos + Vector3.UP * 2.0, 3.0)
 			_rubble(node)
+		"pumpjack", "flare":
+			VFX.explosion(pos + Vector3.UP * 2.0, 3.5)
+			VFX.burning(pos + Vector3.UP, 40.0, 2.0)
+			blast(pos, 120.0, 6.0, 2.0, -1, 0.0)
+			node.queue_free()
+		"platform":
+			# The rig goes up in stages and burns for the rest of the battle.
+			for k in 4:
+				var p := pos + Vector3(_rng.randf_range(-6, 6), 12.0 + k * 2.0, _rng.randf_range(-6, 6))
+				get_tree().create_timer(k * 0.45).timeout.connect(func() -> void: VFX.explosion(p, 4.5, VFX.Surface.AIR))
+			VFX.burning(pos + Vector3.UP * 11.0, 1.0e9, 3.0)
+			var sink := create_tween()
+			sink.tween_property(node, "rotation:z", 0.25, 6.0).set_delay(1.5).set_ease(Tween.EASE_IN)
+		"container":
+			VFX.explosion(pos + Vector3.UP * 1.3, 2.0)
+			node.queue_free()
+		"shrub":
+			VFX.burning(pos + Vector3.UP * 0.6, 8.0, 0.6, false)
+			node.queue_free()
+		"boat":
+			VFX.explosion(pos + Vector3.UP, 1.8, VFX.Surface.AIR)
+			var sink := create_tween()
+			sink.tween_property(node, "position:y", -4.0, 5.0).set_ease(Tween.EASE_IN)
+			sink.parallel().tween_property(node, "rotation:x", 0.4, 5.0)
+			sink.tween_callback(node.queue_free)
 		_:
 			VFX.explosion(pos + Vector3.UP, 1.4)
 			node.queue_free()
@@ -596,7 +785,7 @@ func rebake_navigation() -> void:
 	var src := NavigationMeshSourceGeometryData3D.new()
 	src.add_faces(terrain.build_nav_faces(), Transform3D.IDENTITY)
 	for prop in props:
-		if not prop["alive"] or prop["kind"] == "palm":
+		if not prop["alive"] or prop["kind"] in ["palm", "platform", "boat", "shrub"]:
 			continue
 		var node: Node3D = prop["node"]
 		var c := node.global_position
@@ -635,6 +824,7 @@ func _process(delta: float) -> void:
 		_rebake_timer -= delta
 		if _rebake_timer < 0.0:
 			rebake_navigation()
+	_animate_landmarks(delta)
 
 
 func _on_terrain_deformed(_center: Vector3, _radius: float) -> void:
@@ -651,7 +841,9 @@ func spawn_unit(id: String, team: int, pos: Vector3, yaw := 0.0) -> Unit:
 	u.name = "%s_%d" % [id, u.get_instance_id()]
 	u.rotation.y = yaw
 	add_child(u)
-	if not u.is_air:
+	if u.is_naval:
+		pos.y = Terrain.WATER_LEVEL
+	elif not u.is_air:
 		pos.y = terrain.height_at(pos)
 	u.global_position = pos
 	units[team].append(u)

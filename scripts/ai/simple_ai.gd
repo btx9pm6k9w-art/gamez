@@ -2,7 +2,8 @@ class_name SimpleAI
 extends Node
 ## Iranian forces for the prototype (AI tier 2 "reactive"): defenders hold
 ## positions and counter-attack when hit, reinforcement waves arrive from the
-## mountain base, and drone launchers keep up harassment.
+## mountain base, drone launchers keep up harassment, and from the second
+## wave a swarm of fast attack craft races down the coast at the harbour.
 
 signal wave_incoming(index: int, total: int)
 
@@ -11,6 +12,9 @@ const WAVES := [
 	["karrar", "karrar", "irgc", "irgc", "irgc", "irgc"],
 	["karrar", "karrar", "karrar", "irgc", "irgc", "irgc", "irgc", "irgc"],
 ]
+const BOAT_SWARM := [0, 3, 4] # fast boats added to each wave
+const SEA_SPAWN := Vector3(12, 0, 4)
+const HARBOUR := Vector3(32, 0, 168)
 const FIRST_WAVE_DELAY := 70.0
 const WAVE_INTERVAL := 75.0
 
@@ -49,6 +53,11 @@ func _send_wave() -> void:
 		var u := battlefield.spawn_unit(wave[i], Battlefield.IRAN, p, PI * 0.75)
 		u.set_meta("wave", true)
 		u.order_move(target, true)
+	for i in BOAT_SWARM[waves_sent - 1]:
+		var p := SEA_SPAWN + Vector3(i * 5.0, 0, -i * 2.0)
+		var b := battlefield.spawn_unit("fast_boat", Battlefield.IRAN, p, PI)
+		b.set_meta("wave", true)
+		b.order_move(HARBOUR + Vector3(randf_range(-4, 4), 0, randf_range(-6, 6)), true)
 
 
 func _player_center() -> Vector3:
@@ -56,7 +65,7 @@ func _player_center() -> Vector3:
 	var sum := Vector3.ZERO
 	var n := 0
 	for u: Unit in own:
-		if is_instance_valid(u) and not u.is_air:
+		if is_instance_valid(u) and not u.is_air and not u.is_naval:
 			sum += u.global_position
 			n += 1
 	return sum / n if n > 0 else Vector3(64, 0, 160)
@@ -71,6 +80,10 @@ func _think() -> void:
 		if not is_instance_valid(u) or u.is_air or u.unit_id == "shahed_launcher":
 			continue
 		if u.state != Unit.State.IDLE or u.target != null:
+			continue
+		if u.is_naval:
+			if now - u.last_hit_time < 3.0 or u.has_meta("wave"):
+				u.order_move(HARBOUR + Vector3(randf_range(-6, 6), 0, randf_range(-8, 8)), true)
 			continue
 		if now - u.last_hit_time < 3.0 or u.has_meta("wave"):
 			u.order_move(center + Vector3(randf_range(-6, 6), 0, randf_range(-6, 6)), true)

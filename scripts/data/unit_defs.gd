@@ -1,7 +1,9 @@
 class_name UnitDefs
 ## Unit stats. Display names live here so a store build can rename them.
 ## Weapons: cannon (shell + splash + small crater), rifle (hitscan tracer),
-## laser (anti-air beam), drone_launch (spawns a loitering munition).
+## laser (anti-air beam), drone_launch (spawns a loitering munition),
+## autocannon (fast bursts of small explosive rounds, used by boats).
+## "naval": true units move on water only.
 
 const FACTION_NAMES := {
 	"coalition": "Coalition (US / UAE)",
@@ -34,6 +36,12 @@ const DEFS := {
 		"weapon": "laser", "damage": 45.0, "cooldown": 0.6, "splash": 0.0, "crater": 0.0,
 		"targets": "air", "turret_speed": 5.0,
 	},
+	"patrol_boat": {
+		"display": "Mk VI-class Patrol Boat", "faction": "coalition", "model": "patrol_boat",
+		"hp": 420.0, "speed": 11.0, "radius": 2.6, "range": 30.0, "vision": 42.0,
+		"weapon": "autocannon", "damage": 16.0, "cooldown": 0.9, "splash": 1.2, "crater": 0.0,
+		"targets": "both", "turret_speed": 3.5, "naval": true,
+	},
 	"karrar": {
 		"display": "Karrar-style Tank", "faction": "iran", "model": "tank",
 		"hp": 540.0, "speed": 5.8, "radius": 1.7, "range": 22.0, "vision": 28.0,
@@ -45,6 +53,12 @@ const DEFS := {
 		"hp": 80.0, "speed": 3.6, "radius": 0.5, "range": 16.0, "vision": 24.0,
 		"weapon": "rifle", "damage": 8.0, "cooldown": 0.65, "splash": 0.0, "crater": 0.0,
 		"targets": "both",
+	},
+	"fast_boat": {
+		"display": "IRGC Fast Attack Craft", "faction": "iran", "model": "fast_boat",
+		"hp": 160.0, "speed": 14.0, "radius": 1.6, "range": 22.0, "vision": 30.0,
+		"weapon": "autocannon", "damage": 9.0, "cooldown": 0.7, "splash": 0.8, "crater": 0.0,
+		"targets": "ground", "turret_speed": 4.0, "naval": true,
 	},
 	"shahed_launcher": {
 		"display": "Shahed-style Drone Launcher", "faction": "iran", "model": "launcher_truck",

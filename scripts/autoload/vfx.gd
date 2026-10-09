@@ -385,6 +385,13 @@ func _recipe(kind: String, s: float) -> ParticleProcessMaterial:
 			p = {direction = Vector3.UP, spread = 5.0, initial_velocity_min = 0.0, initial_velocity_max = 0.3,
 				scale_min = 0.25 * s, scale_max = 0.4 * s, scale_curve = _curve([Vector2(0, 0.4), Vector2(1, 2.0)]),
 				color_ramp = _ramp([Color(1, 1, 1, 0), Color(0.95, 0.96, 0.98, 0.5), Color(0.95, 0.96, 0.98, 0)], [0.0, 0.05, 1.0])}
+		"wake":
+			p = {emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX, emission_box_extents = Vector3(0.6 * s, 0.05, 0.3),
+				direction = Vector3.UP, spread = 70.0, initial_velocity_min = 0.4, initial_velocity_max = 1.6 * s,
+				gravity = Vector3(0, -0.6, 0), damping_min = 1.0, damping_max = 2.0,
+				scale_min = 0.6 * s, scale_max = 1.2 * s, scale_curve = _curve([Vector2(0, 0.4), Vector2(1, 2.6)]),
+				color_ramp = _ramp([Color(0.95, 0.97, 0.98, 0), Color(0.92, 0.95, 0.97, 0.75), Color(0.9, 0.94, 0.96, 0)], [0.0, 0.05, 1.0]),
+				angle_min = -180.0, angle_max = 180.0}
 		"thruster":
 			p = {direction = Vector3.BACK, spread = 6.0, initial_velocity_min = 4.0, initial_velocity_max = 8.0,
 				damping_min = 6.0, damping_max = 9.0, scale_min = 0.3 * s, scale_max = 0.55 * s}
@@ -645,6 +652,17 @@ func impact(pos: Vector3) -> void:
 	_emit("dust", 0.3, _dust_quad, pos, 4, 1.2)
 
 
+## Small explosive round: a spark burst and dust puff on land or metal, a
+## white splash on water.
+func small_hit(pos: Vector3, solid: bool) -> void:
+	if solid:
+		_emit("sparks", 0.5, _spark_quad, pos, 12, 0.7)
+		_emit("dust", 0.4, _dust_quad, pos, 4, 1.4)
+		_flash(pos, 2.0, 3.0, 0.08)
+	else:
+		_emit("spray", 0.35, _dust_quad, Vector3(pos.x, 0.0, pos.z), 8, 1.2, 0.9)
+
+
 ## Bright streak for bullets and shells.
 func tracer(from: Vector3, to: Vector3, color := Color(4.0, 2.6, 1.2), width := 0.06, duration := 0.07) -> void:
 	var dist := from.distance_to(to)
@@ -696,6 +714,13 @@ func make_trail(size := 1.0) -> GPUParticles3D:
 	glow.light_energy = 2.5 * size
 	glow.omni_range = 6.0 * size
 	p.add_child(glow)
+	return p
+
+
+## Foaming wake behind a boat. Set amount_ratio from the boat's speed.
+func make_wake(size := 1.0) -> GPUParticles3D:
+	var p := _loop("wake", size, _dust_quad, 80, 3.2)
+	p.local_coords = false
 	return p
 
 

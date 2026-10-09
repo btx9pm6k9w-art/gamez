@@ -1,6 +1,13 @@
 class_name Terrain
 extends Node3D
-## Deformable heightmap terrain.
+## Deformable heightmap terrain with biomes.
+##
+## The map reads like a real stretch of the UAE / Musandam coast: open sea and
+## a rocky island to the west, a tidal creek (khor) lined with mangroves that
+## cuts the coastal plain, salt-flat sabkha by the shore, a gravel wadi running
+## down from the northern mountains, an oasis village, and a sea of dunes to
+## the south-east with an oil field. Biome weights are stored per vertex
+## (vertex colour: r = scorch, g = dune sand, b = wadi gravel) for the shader.
 ##
 ## Heights live in one array (1 m grid). The visible mesh is split into
 ## chunks so a crater only rebuilds the few chunks it touches. Collision is a
@@ -15,6 +22,14 @@ const WATER_LEVEL := 0.0
 var size := 192 # cells per side; vertices = size + 1
 var heights := PackedFloat32Array()
 var scorch := PackedFloat32Array()
+var dune := PackedFloat32Array()
+var gravel := PackedFloat32Array()
+
+## Landmarks other systems place things around.
+const CREEK_END := Vector2(80, 128)
+const ISLAND := Vector2(15, 62)
+const OIL_FIELD := Vector2(166, 162)
+const WADI := [Vector2(126, 0), Vector2(112, 40), Vector2(92, 74), Vector2(84, 104), Vector2(80, 126)]
 
 var material: ShaderMaterial
 var height_texture: ImageTexture
@@ -31,6 +46,8 @@ func generate(seed_value: int) -> void:
 	heights.resize(verts * verts)
 	scorch.resize(verts * verts)
 	scorch.fill(0.0)
+	dune.resize(verts * verts)
+	gravel.resize(verts * verts)
 
 	var hills := FastNoiseLite.new()
 	hills.seed = seed_value
@@ -45,6 +62,9 @@ func generate(seed_value: int) -> void:
 	var dunes := FastNoiseLite.new()
 	dunes.seed = seed_value + 13
 	dunes.frequency = 0.06
+	var warp := FastNoiseLite.new()
+	warp.seed = seed_value + 21
+	warp.frequency = 0.025
 
 	for z in verts:
 		for x in verts:
@@ -57,14 +77,35 @@ func generate(seed_value: int) -> void:
 			# Coastline: the Strait of Hormuz on the west edge.
 			var coast := smoothstep(26.0, 52.0, fx + hills.get_noise_2d(fz * 0.7, 99.0) * 14.0)
 			h = lerpf(-5.0, h, coast)
+			# Tidal creek winding in from the sea; boats can use it to flank.
+			var creek_z := CREEK_END.y + sin(fx * 0.09) * 5.0 + warp.get_noise_2d(fx, 7.0) * 4.0
+			var creek_w := lerpf(9.0, 3.0, smoothstep(30.0, CREEK_END.x, fx)) * (1.0 - smoothstep(CREEK_END.x - 4.0, CREEK_END.x + 2.0, fx))
+			if creek_w > 0.1:
+				h = lerpf(-2.6, h, smoothstep(creek_w * 0.45, creek_w, absf(fz - creek_z)))
+			# Rocky island offshore and a small islet.
+			var isl := 1.0 - smoothstep(4.0, 10.0, Vector2(fx, fz).distance_to(ISLAND) + warp.get_noise_2d(fx * 3.0, fz * 3.0) * 3.0)
+			h = maxf(h, lerpf(-5.0, 2.5 + maxf(ridges.get_noise_2d(fx * 2.0, fz * 2.0), 0.0) * 7.0, isl))
+			var islet := 1.0 - smoothstep(1.5, 4.5, Vector2(fx, fz).distance_to(Vector2(9, 148)))
+			h = maxf(h, lerpf(-5.0, 1.4, islet))
+			# Dry wadi from the mountains to the head of the creek.
+			var wd := _polyline_distance(Vector2(fx, fz), WADI) + warp.get_noise_2d(fx, fz) * 3.0
+			var wadi := 1.0 - smoothstep(2.5, 6.0, wd)
+			h -= wadi * 1.3
+			# Dune sea in the south-east: long wind-sculpted crests.
+			var dm := smoothstep(118.0, 145.0, fx + warp.get_noise_2d(fz, 3.0) * 12.0) * smoothstep(100.0, 128.0, fz + warp.get_noise_2d(fx, 5.0) * 12.0)
+			var crest := 1.0 - absf(sin(fx * 0.11 + fz * 0.045 + warp.get_noise_2d(fx, fz) * 2.4))
+			h += dm * (pow(crest, 2.2) * 4.2 + dunes.get_noise_2d(fx, fz) * 0.6)
 			# Flatten the village in the middle and the two base areas.
 			h = _flatten(h, fx, fz, Vector2(100, 100), 18.0, 2.4)
 			h = _flatten(h, fx, fz, Vector2(64, 160), 16.0, 1.8)
 			h = _flatten(h, fx, fz, Vector2(150, 52), 16.0, 3.4)
+			h = _flatten(h, fx, fz, OIL_FIELD, 14.0, 3.0)
 			# Fade the land edges to a flat skirt height so the horizon is seamless.
 			var edge := minf(minf(fz, float(size) - fz), float(size) - fx)
 			h = lerpf(1.0, h, smoothstep(0.0, 14.0, edge)) if fx > 60.0 else h
 			heights[z * verts + x] = h
+			dune[z * verts + x] = dm * (1.0 - smoothstep(10.0, 14.0, Vector2(fx, fz).distance_to(OIL_FIELD)))
+			gravel[z * verts + x] = wadi
 
 	_height_image = Image.create(verts, verts, false, Image.FORMAT_RF)
 	_update_height_image(0, 0, size, size)
@@ -93,6 +134,30 @@ func generate(seed_value: int) -> void:
 	_body.add_child(cs)
 	_body.position = Vector3(size * 0.5, 0.0, size * 0.5)
 	add_child(_body)
+
+
+static func _polyline_distance(p: Vector2, pts: Array) -> float:
+	var best := INF
+	for i in pts.size() - 1:
+		var a: Vector2 = pts[i]
+		var b: Vector2 = pts[i + 1]
+		var t := clampf((p - a).dot(b - a) / (b - a).length_squared(), 0.0, 1.0)
+		best = minf(best, p.distance_to(a + (b - a) * t))
+	return best
+
+
+## Soft sand in the dunes slows vehicles and infantry (0.6 .. 1.0).
+func ground_speed_factor(p: Vector3) -> float:
+	var k := _idx(clampi(int(round(p.x)), 0, size), clampi(int(round(p.z)), 0, size))
+	return lerpf(1.0, 0.6, dune[k])
+
+
+func dune_at(p: Vector3) -> float:
+	return dune[_idx(clampi(int(round(p.x)), 0, size), clampi(int(round(p.z)), 0, size))]
+
+
+func gravel_at(p: Vector3) -> float:
+	return gravel[_idx(clampi(int(round(p.x)), 0, size), clampi(int(round(p.z)), 0, size))]
 
 
 func _flatten(h: float, x: float, z: float, center: Vector2, radius: float, target: float) -> float:
@@ -166,7 +231,8 @@ func _build_chunk(cx: int, cz: int) -> void:
 			var k := j * n + i
 			verts[k] = Vector3(x, get_height(x, z), z)
 			normals[k] = _normal(x, z)
-			colors[k] = Color(scorch[_idx(x, z)], 0.0, 0.0, 1.0)
+			var vi := _idx(x, z)
+			colors[k] = Color(scorch[vi], dune[vi], gravel[vi], 1.0)
 			uvs[k] = Vector2(x, z) / float(size)
 	var indices := PackedInt32Array()
 	indices.resize(CHUNK * CHUNK * 6)
@@ -272,6 +338,8 @@ func build_minimap_image() -> Image:
 				c = Color(0.06, 0.24, 0.3).lerp(Color(0.12, 0.42, 0.45), clampf(1.0 + h / 5.0, 0.0, 1.0))
 			else:
 				c = Color(0.62, 0.53, 0.38).lerp(Color(0.42, 0.37, 0.33), clampf(h / 14.0, 0.0, 1.0))
+				c = c.lerp(Color(0.78, 0.55, 0.34), dune[_idx(x, z)] * 0.8)
+				c = c.lerp(Color(0.52, 0.5, 0.46), gravel[_idx(x, z)] * 0.6)
 				c = c.darkened(clampf(slope_at(Vector3(x, 0, z)) * 1.5, 0.0, 0.4))
 			img.set_pixel(x, z, c)
 	return img

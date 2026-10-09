@@ -21,8 +21,19 @@ From a terminal on macOS:
 
 ## What the prototype has
 
-- 192 x 192 m procedural coastal battlefield on the Strait of Hormuz: sea, beach,
-  village, mountains, palms, rocks, fuel tanks, concrete T-walls.
+- 192 x 192 m procedural battlefield on the Strait of Hormuz with distinct biomes:
+  open sea with a rocky lighthouse island and a burning offshore rig, a mangrove
+  creek that cuts the coastal plain (a chokepoint for land units and a flank for
+  boats), white salt flats, a gravel wadi of ghaf trees running down from the
+  northern mountains, an oasis village, and a south-east dune sea with
+  sandstone pillars and an oil field of nodding pumpjacks. Thousands of desert
+  shrubs, a coalition pier with containers, moored dhows, and tankers and a
+  destroyer passing far out in the Strait.
+- Terrain matters: soft dune sand slows units, high ground adds up to 25% range,
+  and water is for boats only.
+- **Naval combat**: coalition patrol boats against IRGC fast attack craft that
+  swarm the harbour from the second wave, circling and firing in bursts. Boats
+  steer around the coastline, leave foaming wakes and bob and roll with speed.
 - **Destructible terrain**: shells, drones and strikes blast craters that change the
   ground, the collision and the pathfinding (navmesh re-bakes in the background).
   Buildings collapse, palms topple, fuel tanks explode.
@@ -107,6 +118,7 @@ scenes/main.tscn         entry scene (everything else is built in code)
 scripts/autoload/        GameSettings (quality presets, input), VFX (effects), Audio
 scripts/abilities/       Airstrike (jets, bombs)
 scripts/world/           Battlefield (lighting, props, navigation, damage), Terrain
+                         (biomes), SetDressing (trees, rigs, ships, landmarks)
 scripts/units/           Unit logic, procedural unit models, projectiles
 scripts/control/         RTS camera, selection and orders
 scripts/ai/              Enemy AI
