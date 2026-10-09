@@ -19,6 +19,7 @@ var _active := {}
 var _music: Array[AudioStreamPlayer] = []
 var _ambience: AudioStreamPlayer
 var _ui: AudioStreamPlayer
+var _render_task := -1
 
 
 func _ready() -> void:
@@ -27,7 +28,12 @@ func _ready() -> void:
 	_ui.bus = "UI"
 	_ui.max_polyphony = 4
 	add_child(_ui)
-	WorkerThreadPool.add_task(_render)
+	_render_task = WorkerThreadPool.add_task(_render)
+
+
+func _exit_tree() -> void:
+	# Quitting while the placeholders are still rendering would call back into a freed node.
+	WorkerThreadPool.wait_for_task_completion(_render_task)
 
 
 func _setup_buses() -> void:

@@ -5,6 +5,40 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-09
 
+### First run on the target Mac (M4 Pro MacBook Pro, Godot 4.7.2)
+
+Performance, measured with the window maximised on the Retina display (3670 x 2346):
+
+| Preset | Before | After |
+|---|---|---|
+| Low | 81 fps | ~105 fps |
+| Medium | 46 fps | ~75 fps |
+| High | 34 fps | ~65 fps |
+| Ultra (was the default) | 18 fps | ~40 fps |
+
+- The 3D scene now renders inside a per-preset pixel budget and is upscaled with MetalFX
+  temporal, instead of Ultra rendering every Retina pixel natively.
+- SDFGI and screen-space indirect lighting are Ultra-only; SSR and volumetric fog start at
+  High; shadows top out at 4K; SSAO, SSIL, SSR and GI run at half resolution.
+- M-series Macs start on High instead of Ultra (Max and Ultra chips still start on Ultra).
+  Saved settings from the old presets are re-detected once.
+- Frame rate capped at 60 so laptops stay cool and quiet.
+- The HUD scales with the window height, so text is readable on Retina displays.
+
+Fixes:
+
+- Selection: a script error every frame once a selected unit had been freed
+  (`filter` lambda with a typed parameter).
+- Audio: script error when quitting before the placeholder sounds finished rendering.
+- Removed the deprecated `environment_set_ssr_roughness_quality` call.
+- Texture formats Metal does not support (RGB8 minimap, RGBFloat particle curves) no
+  longer trigger conversion warnings; `hdr_2d` is set explicitly.
+
+Added:
+
+- `scripts/dev/benchmark.gd`: `-- --benchmark` cycles the presets, logs frame rate and
+  saves screenshots; `-- --benchmark-costs` shows what each effect costs.
+
 ### Public repo
 - Confirmed the repo is public. Added `LICENSE` (all rights reserved; third-party
   licences in `docs/SOURCES.md`). Scanned the history for secrets and personal

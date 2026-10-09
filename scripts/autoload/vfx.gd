@@ -242,6 +242,7 @@ func _curve(points: Array) -> CurveTexture:
 	for p: Vector2 in points:
 		c.add_point(p)
 	var t := CurveTexture.new()
+	t.texture_mode = CurveTexture.TEXTURE_MODE_RED # Metal has no three-channel float format
 	t.curve = c
 	return t
 

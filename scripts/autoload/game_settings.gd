@@ -10,10 +10,22 @@ enum Preset { LOW, MEDIUM, HIGH, ULTRA }
 
 const PRESET_NAMES := ["Low", "Medium", "High", "Ultra"]
 const SETTINGS_PATH := "user://settings.cfg"
+## Bumped when the presets change meaning, so a saved choice is re-detected.
+const SETTINGS_VERSION := 2
+## Highest resolution scale per preset, and the most megapixels the 3D scene is
+## rendered at before upscaling. Without the budget a maximised window on a
+## Retina display renders 8+ MP natively and Ultra drops below 20 fps on an M4 Pro.
+const MAX_SCALE := [0.67, 0.77, 0.85, 1.0]
+const PIXEL_BUDGET_MP := [1.8, 2.2, 2.2, 3.2]
+## The HUD is laid out for a 1080-pixel-tall window and scaled up from there.
+const UI_BASE_HEIGHT := 1080.0
 
 var preset: int = Preset.HIGH
 var particle_budget: float = 1.0
 var hdr_output: bool = false
+## Frame-rate cap (0 = uncapped). 60 keeps laptop fans and battery calm; an
+## RTS gains nothing from rendering 120 frames a second on a ProMotion screen.
+var fps_cap: int = 60
 
 var _env: Environment
 var _sun: DirectionalLight3D
@@ -22,7 +34,7 @@ var _sun: DirectionalLight3D
 func _ready() -> void:
 	_register_input_actions()
 	var cfg := ConfigFile.new()
-	if cfg.load(SETTINGS_PATH) == OK:
+	if cfg.load(SETTINGS_PATH) == OK and int(cfg.get_value("graphics", "version", 1)) == SETTINGS_VERSION:
 		preset = int(cfg.get_value("graphics", "preset", detect_preset()))
 		hdr_output = bool(cfg.get_value("graphics", "hdr_output", OS.get_name() == "macOS"))
 	else:
@@ -31,6 +43,8 @@ func _ready() -> void:
 		hdr_output = OS.get_name() == "macOS"
 
 	get_window().hdr_output_requested = hdr_output
+	get_window().size_changed.connect(_on_window_resized)
+	_on_window_resized()
 
 
 ## Picks a starting preset from the GPU name. Apple M-series chips get High or
@@ -38,10 +52,15 @@ func _ready() -> void:
 func detect_preset() -> int:
 	var adapter := RenderingServer.get_video_adapter_name().to_lower()
 	if OS.get_name() == "macOS":
-		for chip in ["m4", "m5", "max", "pro", "ultra"]:
+		# Measured on an M4 Pro at a maximised Retina window: High holds about
+		# 60 fps, Ultra about half that, so only the biggest GPUs start on Ultra.
+		for chip in ["max", "ultra"]:
 			if adapter.contains(chip):
 				return Preset.ULTRA
-		return Preset.HIGH
+		for chip in ["m3", "m4", "m5", "pro"]:
+			if adapter.contains(chip):
+				return Preset.HIGH
+		return Preset.MEDIUM
 	if adapter.contains("rtx 4") or adapter.contains("rtx 5") or adapter.contains("rx 7") or adapter.contains("rx 9"):
 		return Preset.ULTRA
 	if adapter.contains("rtx") or adapter.contains("rx 6"):
@@ -69,27 +88,19 @@ func apply_preset(p: int) -> void:
 	var metal := RenderingServer.get_current_rendering_driver_name() == "metal"
 	var temporal_upscaler := Viewport.SCALING_3D_MODE_METALFX_TEMPORAL if metal else Viewport.SCALING_3D_MODE_FSR2
 
-	# Resolution scale and anti-aliasing. Temporal upscalers replace TAA.
-	match preset:
-		Preset.LOW:
-			vp.scaling_3d_mode = temporal_upscaler
-			vp.scaling_3d_scale = 0.67
-		Preset.MEDIUM:
-			vp.scaling_3d_mode = temporal_upscaler
-			vp.scaling_3d_scale = 0.77
-		Preset.HIGH:
-			vp.scaling_3d_mode = temporal_upscaler
-			vp.scaling_3d_scale = 0.85
-		Preset.ULTRA:
-			vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
-			vp.scaling_3d_scale = 1.0
-	vp.use_taa = preset == Preset.ULTRA
+	# Resolution scale and anti-aliasing. Temporal upscalers replace TAA; Ultra
+	# only renders natively (with TAA) when the window fits its pixel budget.
+	var scale := render_scale()
+	var native := scale >= 1.0
+	vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR if native else temporal_upscaler
+	vp.scaling_3d_scale = scale
+	vp.use_taa = native
 	vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_SMAA if preset == Preset.LOW else Viewport.SCREEN_SPACE_AA_DISABLED
 	vp.msaa_3d = Viewport.MSAA_DISABLED
 	vp.mesh_lod_threshold = [4.0, 2.0, 1.0, 0.5][preset]
 
 	# Shadows.
-	var atlas: int = [2048, 2048, 4096, 8192][preset]
+	var atlas: int = [2048, 2048, 4096, 4096][preset]
 	RenderingServer.directional_shadow_atlas_set_size(atlas, preset < Preset.HIGH)
 	RenderingServer.directional_soft_shadow_filter_set_quality(
 		[RenderingServer.SHADOW_QUALITY_HARD, RenderingServer.SHADOW_QUALITY_SOFT_LOW,
@@ -104,41 +115,59 @@ func apply_preset(p: int) -> void:
 	# Screen-space effects and global illumination.
 	RenderingServer.environment_set_ssao_quality(
 		[RenderingServer.ENV_SSAO_QUALITY_VERY_LOW, RenderingServer.ENV_SSAO_QUALITY_LOW,
-		RenderingServer.ENV_SSAO_QUALITY_HIGH, RenderingServer.ENV_SSAO_QUALITY_ULTRA][preset],
-		preset < Preset.HIGH, 0.5, 2, 50.0, 300.0)
+		RenderingServer.ENV_SSAO_QUALITY_MEDIUM, RenderingServer.ENV_SSAO_QUALITY_HIGH][preset],
+		true, 0.5, 2, 50.0, 300.0)
 	RenderingServer.environment_set_ssil_quality(
 		[RenderingServer.ENV_SSIL_QUALITY_VERY_LOW, RenderingServer.ENV_SSIL_QUALITY_LOW,
-		RenderingServer.ENV_SSIL_QUALITY_MEDIUM, RenderingServer.ENV_SSIL_QUALITY_HIGH][preset],
-		preset < Preset.ULTRA, 0.5, 4, 50.0, 300.0)
-	RenderingServer.environment_set_ssr_half_size(preset < Preset.ULTRA)
-	RenderingServer.environment_set_ssr_roughness_quality(
-		[RenderingServer.ENV_SSR_ROUGHNESS_QUALITY_DISABLED, RenderingServer.ENV_SSR_ROUGHNESS_QUALITY_LOW,
-		RenderingServer.ENV_SSR_ROUGHNESS_QUALITY_MEDIUM, RenderingServer.ENV_SSR_ROUGHNESS_QUALITY_HIGH][preset])
+		RenderingServer.ENV_SSIL_QUALITY_MEDIUM, RenderingServer.ENV_SSIL_QUALITY_MEDIUM][preset],
+		true, 0.5, 4, 50.0, 300.0)
+	RenderingServer.environment_set_ssr_half_size(true)
 	RenderingServer.environment_set_sdfgi_ray_count(
 		[RenderingServer.ENV_SDFGI_RAY_COUNT_8, RenderingServer.ENV_SDFGI_RAY_COUNT_16,
-		RenderingServer.ENV_SDFGI_RAY_COUNT_32, RenderingServer.ENV_SDFGI_RAY_COUNT_64][preset])
-	RenderingServer.gi_set_use_half_resolution(preset < Preset.ULTRA)
-	RenderingServer.environment_set_volumetric_fog_volume_size([64, 96, 128, 160][preset], [48, 64, 96, 128][preset])
+		RenderingServer.ENV_SDFGI_RAY_COUNT_16, RenderingServer.ENV_SDFGI_RAY_COUNT_32][preset])
+	RenderingServer.gi_set_use_half_resolution(true)
+	RenderingServer.environment_set_volumetric_fog_volume_size([64, 64, 96, 128][preset], [48, 48, 64, 96][preset])
 	RenderingServer.environment_set_volumetric_fog_filter_active(preset >= Preset.HIGH)
 
 	if _env:
 		_env.ssao_enabled = preset >= Preset.MEDIUM
-		_env.ssil_enabled = preset >= Preset.MEDIUM
-		_env.ssr_enabled = preset >= Preset.MEDIUM
-		_env.ssr_max_steps = [16, 32, 64, 96][preset]
-		_env.sdfgi_enabled = preset >= Preset.HIGH
-		_env.sdfgi_cascades = 6 if preset == Preset.ULTRA else 4
-		_env.volumetric_fog_enabled = preset >= Preset.MEDIUM
+		# The full-screen lighting passes are the expensive part: screen-space
+		# indirect light and SDFGI together halve the frame rate, so only Ultra
+		# has them. See scripts/dev/benchmark.gd (--benchmark-costs).
+		_env.ssil_enabled = preset >= Preset.ULTRA
+		_env.ssr_enabled = preset >= Preset.HIGH
+		_env.ssr_max_steps = [16, 32, 32, 64][preset]
+		_env.sdfgi_enabled = preset >= Preset.ULTRA
+		_env.sdfgi_cascades = 4
+		_env.volumetric_fog_enabled = preset >= Preset.HIGH
 		_env.glow_enabled = preset >= Preset.MEDIUM
 		_env.fog_enabled = true
 
 	particle_budget = [0.35, 0.6, 1.0, 1.5][preset]
+	Engine.max_fps = fps_cap
 	preset_changed.emit(preset)
 	_save()
 
 
+## 3D resolution scale for the current preset and window size.
+func render_scale() -> float:
+	var size := get_window().size
+	var megapixels := maxf(size.x * size.y / 1e6, 0.1)
+	return clampf(sqrt(PIXEL_BUDGET_MP[preset] / megapixels), 0.5, MAX_SCALE[preset])
+
+
+func _on_window_resized() -> void:
+	var win := get_window()
+	win.content_scale_factor = clampf(win.size.y / UI_BASE_HEIGHT, 1.0, 3.0)
+	if _env:
+		var scale := render_scale()
+		if not is_equal_approx(scale, get_viewport().scaling_3d_scale):
+			apply_preset(preset)
+
+
 func _save() -> void:
 	var cfg := ConfigFile.new()
+	cfg.set_value("graphics", "version", SETTINGS_VERSION)
 	cfg.set_value("graphics", "preset", preset)
 	cfg.set_value("graphics", "hdr_output", hdr_output)
 	cfg.save(SETTINGS_PATH)

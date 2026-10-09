@@ -40,6 +40,8 @@ func _ready() -> void:
 	_spawn_forces()
 	battlefield.unit_killed.connect(_on_unit_killed)
 	hud.show_message("Operation Fracture Line: take the village, survive the waves", HUD.ACCENT, 6.0)
+	if "--benchmark" in OS.get_cmdline_user_args():
+		add_child(Benchmark.new())
 
 
 func _spawn_forces() -> void:

@@ -36,6 +36,7 @@ window/hdr/request_hdr_output=true
 
 renderer/rendering_method="forward_plus"
 rendering_device/driver.macos="metal"
+viewport/hdr_2d=true
 anti_aliasing/quality/use_taa=true
 anti_aliasing/quality/use_debanding=true
 anti_aliasing/screen_space_roughness_limiter/enabled=true

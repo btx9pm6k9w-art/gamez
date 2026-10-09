@@ -108,7 +108,8 @@ func _process(delta: float) -> void:
 			strike_ready_changed.emit(true)
 	airstrike_cooldown = maxf(airstrike_cooldown - delta, 0.0)
 	# Drop dead units from the selection and groups.
-	var alive := selected.filter(func(u: Unit) -> bool: return is_instance_valid(u) and u.is_alive())
+	# Freed units cannot be passed to a typed parameter, so the lambda is untyped.
+	var alive := selected.filter(func(u) -> bool: return is_instance_valid(u) and u.is_alive())
 	if alive.size() != selected.size():
 		var typed: Array[Unit] = []
 		typed.assign(alive)

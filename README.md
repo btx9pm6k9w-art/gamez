@@ -27,6 +27,9 @@ From a terminal on macOS:
 /Applications/Godot.app/Contents/MacOS/Godot --path . 
 ```
 
+(Use the real location of Godot.app if it is not in Applications, for example
+`~/Downloads/Godot.app/Contents/MacOS/Godot`.)
+
 ## What the prototype has
 
 - 192 x 192 m procedural battlefield on the Strait of Hormuz with distinct biomes:
@@ -82,21 +85,34 @@ audio/ambience/coast.ogg
 
 ## Graphics
 
-Everything is configured for the best image Godot 4.7 can produce, then scaled by preset:
+Presets are balanced from measurements on an M4 Pro MacBook Pro with the window
+maximised on its Retina display (8.6 million pixels). The 3D scene is rendered inside a
+per-preset pixel budget and upscaled with MetalFX temporal (FSR 2 elsewhere); the HUD is
+always drawn at native resolution.
 
-| | Low | Medium | High | Ultra (M4 Mac default) |
+| | Low | Medium | High (M-series default) | Ultra |
 |---|---|---|---|---|
-| Resolution | 67% + MetalFX/FSR 2 | 77% + MetalFX/FSR 2 | 85% + MetalFX temporal | Native Retina + TAA |
-| Global illumination | off | SSIL | SDFGI 4 cascades + SSIL | SDFGI 6 cascades, 64 rays + SSIL |
-| Reflections | off | SSR | SSR | SSR full resolution |
-| Shadows | 2K hard | 2K soft | 4K soft | 8K soft (PCSS-style) |
-| Volumetric fog | off | on | on, filtered | high resolution |
-| Post | – | cinematic pass | + depth of field | + depth of field |
+| 3D pixel budget | 1.8 MP | 2.2 MP | 2.2 MP | 3.2 MP |
+| Global illumination | off | off | off | SDFGI 4 cascades, 32 rays + SSIL |
+| Ambient occlusion | off | SSAO | SSAO | SSAO high |
+| Reflections | off | off | SSR | SSR |
+| Shadows | 2K hard | 2K soft | 4K soft | 4K soft, high filter |
+| Volumetric fog | off | off | on | on, larger volume |
+| Glow and cinematic pass | off | on | on | on |
+| M4 Pro, maximised Retina | ~105 fps | ~75 fps | ~65 fps | ~40 fps |
 
-Always on: AgX tonemapping, glow/bloom, PBR materials, GPU particles with terrain
-collision, decals, HDR output on XDR displays (F5 toggles).
+Always on: AgX tonemapping, PBR materials, GPU particles with terrain collision,
+decals, HDR output on XDR displays (F5 toggles). The frame rate is capped at 60
+(`GameSettings.fps_cap`) to keep laptops cool and quiet.
 
 Presets switch live with **F1–F4**; the game picks one from your GPU on first launch.
+
+To re-measure on your own machine (prints `BENCH` lines and saves a screenshot per preset):
+
+```sh
+godot --path . -- --benchmark --benchmark-out=/tmp/gamez-bench   # all four presets
+godot --path . -- --benchmark --benchmark-costs                  # cost of each effect
+```
 
 ## Controls
 
@@ -132,6 +148,7 @@ scripts/control/         RTS camera, selection and orders
 scripts/ai/              Enemy AI
 scripts/ui/              HUD and minimap
 scripts/data/            Unit stats and display names
+scripts/dev/             Benchmark harness (started with -- --benchmark)
 shaders/                 Terrain, water and post-process shaders
 shaders/vfx/             Smoke, fire, fireball and heat-haze/shockwave shaders
 ```

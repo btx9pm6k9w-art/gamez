@@ -43,11 +43,24 @@ startup).
 - **Audio:** buses with limiter, reverb and sidechain ducking; 3D SFX; adaptive
   three-stem music; all synthesised until real recordings are added.
 
-**Not yet verified:** the game has never been run in Godot. The cloud
-container used so far cannot download Godot, so the code has only been checked
-with `gdtoolkit` (syntax) and an API-name checker against the 4.7.2 class
-reference. Expect a round of small runtime fixes on the first real run,
-especially in the shaders under `shaders/vfx/`.
+**Verified on the Mac (2026-10-09):** the game imports and runs on the M4 Pro
+MacBook Pro in Godot 4.7.2 with no script errors. Presets measured with the
+window maximised: Low ~105 fps, Medium ~75, High ~65 (default on M-series),
+Ultra ~40, capped at 60. Only the opening scene has been profiled, not heavy
+combat. A few ObjectDB instances leak at exit. Change presets in
+`scripts/autoload/game_settings.gd` only with measurements: run the game with
+`-- --benchmark` (or `-- --benchmark-costs`) before and after.
+
+**Owner feedback:** the graphics look poor and samey. Every model is a
+generated primitive and the golden-hour grade is too dark and orange. The art
+pass (real CC0 models and PBR textures) is the top priority; see Next steps.
+
+On the owner's Mac, Godot is at `~/Downloads/Godot.app` and the clone is
+`/Users/darko/gamez`:
+
+```sh
+~/Downloads/Godot.app/Contents/MacOS/Godot --path /Users/darko/gamez
+```
 
 ## Set up and run
 
@@ -128,18 +141,19 @@ tools/                   setup and check scripts
 
 ## Next steps
 
-1. **First real run on the Mac.** Run `tools/check.sh`, then play. Fix any
-   script and shader errors, then tune the visuals on the XDR screen.
+1. **Art pass (top priority).** Real CC0 models and PBR textures, brighter
+   and less orange lighting, more detail props. The Mac session does the
+   downloads (the cloud container cannot reach asset sites).
 2. Get PR #1 green and merged into `main`.
 3. Economy and base building: oil, tanker trucks, construction, power.
 4. Fog of war, the commander hero unit and the remaining abilities.
-5. Art pass with CC0 assets (Kenney, Quaternius, Poly Haven, ambientCG), plus
-   real audio from the Sonniss GDC bundles. Log every asset in `docs/SOURCES.md`.
+5. Real audio from the Sonniss GDC bundles. Log every asset in `docs/SOURCES.md`.
 6. Missions 1 to 3, then the rest of the campaign (see `docs/DESIGN.md`).
 
 ## Open questions for the owner
 
-- Godot 4.7 must be installed on the Mac before the first run.
+- The Mac is signed in to GitHub as a read-only account, so Mac commits reach
+  the repo as patches pushed from a cloud session.
 - Budget and timing for the commissioned score and voice actors.
 
 ## Working rules

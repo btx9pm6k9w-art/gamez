@@ -329,7 +329,7 @@ func build_nav_faces() -> PackedVector3Array:
 
 ## Pixels for the minimap: sand, rock and sea shaded by height.
 func build_minimap_image() -> Image:
-	var img := Image.create(size, size, false, Image.FORMAT_RGB8)
+	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
 	for z in size:
 		for x in size:
 			var h := get_height(x, z)
