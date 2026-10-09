@@ -6,7 +6,7 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 ## 2026-10-09
 
 ### Fixes from the external code review
-- **Line of fire:** walls, houses, containers, tanks and rocks, and ridges in
+- **Line of fire:** walls, houses, containers, fuel tanks and rocks, and ridges in
   the terrain, now block direct fire. Units only pick targets they can see
   (`Battlefield.find_target`, `Unit.has_line_of_fire`), close in when a wall is
   in the way, and rifle rounds stop at the obstacle. Shells and missiles sweep
