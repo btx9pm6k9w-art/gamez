@@ -866,7 +866,8 @@ func _build_navigation() -> void:
 	_nav_template = NavigationMesh.new()
 	_nav_template.cell_size = 0.5
 	_nav_template.cell_height = 0.25
-	_nav_template.agent_radius = 0.6
+	# Radii are multiples of cell_size; Godot rounds anything else up.
+	_nav_template.agent_radius = 0.5
 	_nav_template.agent_height = 2.0
 	_nav_template.agent_max_climb = 0.75
 	_nav_template.agent_max_slope = 38.0
@@ -874,7 +875,7 @@ func _build_navigation() -> void:
 	_nav_template.detail_sample_distance = 4.0
 	_nav_template.filter_baking_aabb = AABB(Vector3(0, -8, 0), Vector3(MAP_SIZE, 60, MAP_SIZE))
 	_nav_template_heavy = _nav_template.duplicate() as NavigationMesh
-	_nav_template_heavy.agent_radius = 1.8
+	_nav_template_heavy.agent_radius = 2.0
 	_nav_template_heavy.agent_max_slope = 32.0
 	rebake_navigation()
 

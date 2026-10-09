@@ -178,9 +178,12 @@ tools/                   setup and check scripts
 Folded in the external review (`/mnt/project-files/external-review-plan.md`,
 which read commit 9dfc06c) in its priority order; see DECISIONS #23.
 
-1. **Mac verification** of the UI overhaul, line of fire, fixed-step movement,
-   the two navmeshes and the new terrain normals. Commit a macOS export preset
-   (`export_presets.cfg`, no credentials) and test an exported app.
+1. **Mac export:** `export_presets.cfg` (macOS, universal, ad-hoc signed, no
+   credentials) is committed; exporting needs the Godot 4.7.2 export templates
+   (about 1 GB, the Mac has 6.4 GB free). Field test of c84e429 passed: no
+   script errors, fog lines up and costs 1.6 ms five times a second, waves
+   stage and attack, line of fire works, no rubber-banding, High at the 60 cap
+   (84 to 93 uncapped). `-- --field-test` reruns the scripted checks.
 2. **Check fog of war and the group AI on the Mac** (both new, untested in
    the engine): decal orientation and darkness, the cost of rebuilding the
    decal atlas when fog changes, waves staging and flanking. Later: fog on the

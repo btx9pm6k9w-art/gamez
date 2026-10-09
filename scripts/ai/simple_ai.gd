@@ -261,7 +261,8 @@ func _run_groups(dt: float) -> void:
 					_order_group(g, g["target"], true)
 			"attack":
 				# Losing badly: fall back and join the next wave.
-				if units.size() <= maxi(1, int(g["start"]) * 0.35) and g["role"] != "raid":
+				# Groups smaller than three fight to the end.
+				if int(g["start"]) >= 3 and units.size() <= int(g["start"]) * 0.35 and g["role"] != "raid":
 					g["phase"] = "retreat"
 					_order_group(g, g["home"], false)
 					continue
@@ -271,6 +272,11 @@ func _run_groups(dt: float) -> void:
 					if u.state == Unit.State.IDLE and u.target == null:
 						idle += 1
 				if idle == units.size():
+					# Whatever was seen here has gone: forget it so the group
+					# moves on instead of re-ordering itself to the same spot.
+					for id in _sightings.keys():
+						if (_sightings[id]["pos"] as Vector3).distance_to(c) < 20.0:
+							_sightings.erase(id)
 					g["target"] = _pick_target(c)
 					_order_group(g, g["target"], true)
 			"retreat":

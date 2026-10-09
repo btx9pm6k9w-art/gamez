@@ -14,8 +14,10 @@ if command -v gdparse >/dev/null; then
 		gdparse "$f" >/dev/null || { echo "FAIL $f"; status=1; }
 	done < <(git ls-files '*.gd')
 else
-	echo "FAIL: gdparse not installed (pip install \"gdtoolkit==4.*\")"
-	status=1
+	# The headless Godot run below parses every script too, so a missing
+	# gdparse only fails the check when Godot is missing as well.
+	echo "warning: gdparse not installed (pip install \"gdtoolkit==4.*\")"
+	no_gdparse=1
 fi
 
 echo "== shadow check"
@@ -44,5 +46,9 @@ if [ -n "$GODOT_BIN" ]; then
 	fi
 else
 	echo "Godot not found; skipping the headless run."
+	if [ "${no_gdparse:-0}" = 1 ]; then
+		echo "FAIL: neither gdparse nor Godot is available, nothing was checked"
+		status=1
+	fi
 fi
 exit $status

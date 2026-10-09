@@ -25,10 +25,15 @@ func _ready() -> void:
 		# Dark column on the left fading into the scene, plus a soft bottom vignette.
 		var w := shade.size.x
 		var h := shade.size.y
-		var steps := 24
+		# One quad per band with colours per corner, so the fade has no seams.
+		var steps := 8
 		for i in steps:
-			var t := i / float(steps)
-			shade.draw_rect(Rect2(Vector2(w * 0.5 * t, 0), Vector2(w * 0.5 / steps + 1, h)), Color(0.0, 0.02, 0.04, 0.88 * (1.0 - t) * (1.0 - t)))
+			var t0 := i / float(steps)
+			var t1 := (i + 1) / float(steps)
+			var c0 := Color(0.0, 0.02, 0.04, 0.88 * (1.0 - t0) * (1.0 - t0))
+			var c1 := Color(0.0, 0.02, 0.04, 0.88 * (1.0 - t1) * (1.0 - t1))
+			shade.draw_polygon(PackedVector2Array([Vector2(w * 0.5 * t0, 0), Vector2(w * 0.5 * t1, 0), Vector2(w * 0.5 * t1, h), Vector2(w * 0.5 * t0, h)]),
+				PackedColorArray([c0, c1, c1, c0]))
 		for i in 12:
 			var t := i / 12.0
 			shade.draw_rect(Rect2(Vector2(0, h * (0.8 + 0.2 * t)), Vector2(w, h * 0.2 / 12 + 1)), Color(0, 0.02, 0.04, 0.35 * t)))

@@ -5,6 +5,16 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-09
 
+### Follow-ups to the Mac field test
+- AI: groups of fewer than three no longer retreat the moment they arrive; a
+  group that reaches an empty target forgets the stale sighting and moves on
+  instead of standing still.
+- Navmesh radii are now multiples of the 0.5 m cell (infantry 0.5 m,
+  vehicles 2.0 m), so Godot stops rounding them up with a warning on every bake.
+- Main menu fade drawn with per-corner colours, without the faint vertical bands.
+- `tools/check.sh`: a missing gdparse is a warning when Godot runs the scripts,
+  and a failure only when neither is available.
+
 ### Mac field test of fog of war, group AI, line of fire and navmeshes
 - **Fixed** a script error in `SimpleAI._alive` once a grouped unit had been freed
   (typed loop variable over freed instances).
