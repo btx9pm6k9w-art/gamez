@@ -23,6 +23,16 @@ var move_goal := Vector3.ZERO
 var ground_target := Vector3.INF # for drones
 var selected := false: set = _set_selected
 var last_hit_time := -100.0
+## Shift-queued waypoints: each entry is [position, attack_move].
+var waypoints: Array = []
+## Patrol: the two ends the unit attack-moves between.
+var patrol := false
+var _patrol_a := Vector3.ZERO
+var _patrol_b := Vector3.ZERO
+## Hold position: fire at anything in range but never move to chase.
+var hold := false
+## Where an idle unit was standing before it went after an attacker.
+var _guard_post := Vector3.INF
 
 var model: Node3D
 var turret: Node3D
@@ -138,9 +148,20 @@ func is_alive() -> bool:
 
 # --- Orders ---------------------------------------------------------------
 
-func order_move(pos: Vector3, attack_move := false) -> void:
+func order_move(pos: Vector3, attack_move := false, queue := false) -> void:
 	if is_air:
 		return
+	if queue and (state != State.IDLE or not waypoints.is_empty()):
+		waypoints.append([pos, attack_move])
+		return
+	waypoints.clear()
+	patrol = false
+	hold = false
+	_guard_post = Vector3.INF
+	_go(pos, attack_move)
+
+
+func _go(pos: Vector3, attack_move: bool) -> void:
 	move_goal = pos
 	target = null
 	state = State.ATTACK_MOVE if attack_move else State.MOVE
@@ -148,9 +169,24 @@ func order_move(pos: Vector3, attack_move := false) -> void:
 		agent.target_position = pos
 
 
-func order_attack(t: Unit) -> void:
+## Patrol between here and pos, attacking anything met on the way.
+func order_patrol(pos: Vector3) -> void:
+	if is_air:
+		return
+	order_move(pos, true)
+	patrol = true
+	_patrol_a = global_position
+	_patrol_b = pos
+
+
+func order_attack(t: Unit, queue := false) -> void:
 	if t == null or t.team == team or not _can_target(t):
 		return
+	if not queue:
+		waypoints.clear()
+		patrol = false
+	hold = false
+	_guard_post = Vector3.INF
 	target = t
 	state = State.ATTACK
 	_repath_timer = 0.0
@@ -159,8 +195,31 @@ func order_attack(t: Unit) -> void:
 func order_stop() -> void:
 	state = State.IDLE
 	target = null
+	waypoints.clear()
+	patrol = false
+	hold = false
+	_guard_post = Vector3.INF
 	if agent:
 		agent.target_position = global_position
+
+
+func order_hold() -> void:
+	order_stop()
+	hold = true
+
+
+## Called when a move leg ends: take the next queued waypoint, turn round on
+## patrol, walk back to the guard post, or go idle.
+func _next_leg() -> void:
+	if not waypoints.is_empty():
+		var w: Array = waypoints.pop_front()
+		_go(w[0], w[1])
+	elif patrol:
+		var back := _patrol_a if move_goal.distance_to(_patrol_b) < 1.0 else _patrol_b
+		_go(back, true)
+	else:
+		state = State.IDLE
+		_guard_post = Vector3.INF
 
 
 ## Drones fly to a point and detonate.
@@ -186,7 +245,10 @@ func _physics_process(delta: float) -> void:
 	if target != null and (not is_instance_valid(target) or not target.is_alive()):
 		target = null
 		if state == State.ATTACK:
-			state = State.IDLE
+			if waypoints.is_empty() and not patrol:
+				state = State.IDLE
+			else:
+				_next_leg()
 		elif state == State.ATTACK_MOVE:
 			agent.target_position = move_goal
 
@@ -200,14 +262,22 @@ func _physics_process(delta: float) -> void:
 			if target != null and state == State.ATTACK_MOVE:
 				_engage(delta)
 			elif agent.is_navigation_finished():
-				state = State.IDLE
+				_next_leg()
 			else:
 				_desired = _steer_to(agent.get_next_path_position())
 		State.ATTACK:
 			_engage(delta)
 		State.IDLE:
 			if target != null:
-				_aim_and_fire(delta)
+				if not hold and global_position.distance_to(target.global_position) > range_to(target):
+					# Classic guard behaviour: go after an enemy that is in sight
+					# but out of range, then walk back to where we stood.
+					var t := target
+					_guard_post = global_position
+					_go(_guard_post, true)
+					target = t
+				else:
+					_aim_and_fire(delta)
 	if state == State.IDLE and target == null and turret:
 		turret.rotation.y = lerp_angle(turret.rotation.y, 0.0, delta)
 
@@ -234,7 +304,7 @@ func _process_boat(delta: float) -> void:
 	if target != null and (not is_instance_valid(target) or not target.is_alive()):
 		target = null
 		if state == State.ATTACK:
-			state = State.IDLE
+			_next_leg()
 	if _scan_timer <= 0.0:
 		_scan_timer = 0.3
 		_auto_target()
@@ -251,8 +321,8 @@ func _process_boat(delta: float) -> void:
 	var want := Vector3.ZERO
 	if goal != Vector3.INF:
 		var to := Vector3(goal.x - global_position.x, 0, goal.z - global_position.z)
-		if to.length() < 3.0 and state == State.MOVE:
-			state = State.IDLE
+		if to.length() < 3.0 and (state == State.MOVE or (state == State.ATTACK_MOVE and target == null)):
+			_next_leg()
 		elif to.length() > 0.5:
 			want = _clear_heading(to.normalized()) * float(def["speed"])
 	# Keep clear of other boats.
@@ -408,11 +478,18 @@ func _can_target(t: Unit) -> bool:
 func _auto_target() -> void:
 	if state == State.ATTACK:
 		return
+	if _guard_post != Vector3.INF and global_position.distance_to(_guard_post) > float(def["vision"]):
+		# Leash: a guarding unit gives up the chase and walks back.
+		# A plain move ignores targets until it is back at its post.
+		_go(_guard_post, false)
+		return
 	if target != null and global_position.distance_to(target.global_position) <= float(def["range"]) * 1.1:
 		return
 	var radius: float = def["range"]
 	if state == State.ATTACK_MOVE:
 		radius = maxf(radius, def["vision"])
+	elif state == State.IDLE and not hold and not is_naval:
+		radius = maxf(radius, float(def["vision"]) * 0.8)
 	elif state == State.MOVE:
 		target = null
 		return

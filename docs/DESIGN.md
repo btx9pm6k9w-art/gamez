@@ -2,7 +2,7 @@
 Markdown copy of the living design document, kept in git so the project can be
 continued from any machine without access to claude.ai. Source of truth while
 the claude.ai doc exists: https://claude.ai/code/artifact/3b74b31f-13ee-4ce3-a532-29f824e41721
-Last synced: 2026-10-09 (doc revision 30). Re-export and overwrite this file
+Last synced: 2026-10-09 (doc revision 31). Re-export and overwrite this file
 whenever the doc changes; if the online doc is ever lost, this file becomes the
 source of truth.
 -->
@@ -61,7 +61,7 @@ The loop is classic: pump oil, spend it on structures and units, destroy the ene
 
 **Economy.** Oil is the resource: tanker trucks pump it from oil fields and wells, refineries turn it into funds. Power comes from plants and, for ORACLE, data centres. Low power slows production and shuts down interceptors and lasers. Missiles and interceptors are bought per shot, so air defence is an economic duel.
 
-**Controls.** Left-drag box select, left-click select, shift to add, double-click selects all of a type, right-click to move or attack, R then click for attack-move, X to stop, Ctrl+1..9 to set groups, 1..9 to recall, WASD or screen-edge pan, mouse wheel zoom, Q/E to rotate the camera in 45 degree steps.
+**Controls.** Left-drag box select, left-click select, shift to add, double-click selects all of a type, right-click to move or attack, A then click for attack-move, S to stop, H to hold position, P to patrol, Shift to queue orders, Ctrl+1..9 to set groups, 1..9 to recall (twice jumps the camera), screen-edge or arrow-key pan, mouse wheel zoom, Q/E to rotate the camera in 45 degree steps. Full layout and the research behind it are in "Controls and camera" under User experience.
 
 **Destructible terrain.** The map is a heightmap terrain split into chunks. Explosions deform height in a radius and paint a scorched material layer; affected chunks rebuild their mesh and collision. Pathfinding regions update after each change. Props (trees, rocks, walls, bridges) are destructible scene objects with health and a broken variant.
 
@@ -119,6 +119,26 @@ The goal is an RTS that feels like a modern app on a Mac: instant, readable and 
 - **Replays and kill cams.** Instant replay of the last 20 seconds with a cinematic camera.
 - **Accessibility.** Colour-blind palettes, scalable UI, remappable keys, subtitles, adjustable game speed.
 - **Onboarding.** Mission 1 teaches by doing, with hints that disappear once the player has used a control.
+
+### Controls and camera (researched from the classics)
+
+The owner asked for controls that feel like the classic RTS games. These are the conventions those games share, and what GameZ does with each.
+
+| Convention | How the classics do it | GameZ |
+| --- | --- | --- |
+| Edge scrolling | Pushing the cursor against any screen edge scrolls the map in C&C, Red Alert 2, StarCraft 2, Age of Empires and OpenRA. It works because those games run fullscreen or lock the cursor inside the window. OpenRA uses a band 5 pixels wide, a speed setting and an option to lock the mouse to the window | Cursor locked to the window by default (F9 frees it). The edge band is about 1.2% of the screen, at least 10 pixels, measured in real screen pixels so Retina scaling does not shrink it. A cursor that slips onto the macOS menu bar or Dock still scrolls. Speed ramps from half to full over half a second and with depth into the band, and panning glides to a stop |
+| Keyboard camera | Arrow keys pan in C&C and Red Alert. StarCraft keeps the letter keys for commands and offers camera hotkeys; Space jumps to the last alert and Backspace cycles bases | Arrow keys pan, Q/E rotate, Home resets the view, - and = change scroll speed, Space jumps to the last alert |
+| Other panning | Middle-drag in StarCraft 2 and Company of Heroes; minimap click and drag everywhere | Middle-drag, two-finger trackpad pan, minimap click and drag |
+| Command keys | A attack-move, S stop, H hold, P patrol, M move in StarCraft 2. G guard, X scatter, S stop in Red Alert 2. G defend in C&C Remastered | A attack-move, S stop, H hold, P patrol. R and X kept as alternates. F and G are the commander's strikes |
+| Selection | Box select; Shift adds; double-click or Ctrl+click selects all of that type on screen; Tab or F2 selects the army | All of these, with Tab for the army |
+| Control groups | Ctrl+number sets, number recalls, pressing twice centres the camera | Same, with Cmd as well as Ctrl on the Mac |
+| Orders | Right click moves or attacks. Shift queues waypoints. Right click cancels an armed order. C&C Remastered offers both left- and right-click command schemes | Right-click commands; Shift queues move, attack-move, attack and patrol; right click or Esc cancels |
+| Unit behaviour | Idle units return fire and chase a little, then go back; hold position never moves; patrol attacks along the route | Idle units chase enemies in sight and walk back to where they stood; H holds; P patrols |
+| Minimap | Left click jumps, right click orders the selection there, pings show where fighting is | Same, with an expanding ping when our units are hit off screen |
+| Alerts and voice | EVA's "Our base is under attack" and "Unit lost", spaced a few seconds apart. Every unit answers a click with a short line, once per click and never once per unit | "Units under attack" toast, minimap ping and voice, at most every 8 seconds. Units answer selection and orders with short lines per unit type, using the system text-to-speech voice until lines are recorded (V turns voices off) |
+| Rally points and sidebar | Factory rally points (right click with the factory selected) and a build sidebar with tabs and queued portraits (C&C, Red Alert 2) | Planned with base building: sidebar with tabs, queues, rally points, repair and sell modes |
+
+Sources: [OpenRA source, ViewportControllerWidget.cs and Settings.cs](https://github.com/OpenRA/OpenRA) (GPL-3.0; ideas only, no code copied); [EA Help: How to play the C&C Remastered Collection](https://help.ea.com/en/articles/command-and-conquer/command-and-conquer-remastered/how-to-play/); [Blizzard: StarCraft II simplified controls](https://news.blizzard.com/en-us/article/6640645/game-guide-simplified-controls); [Dignitas: Using camera hotkeys in SC2](https://dignitas.gg/articles/blogs/Starcraft-II/3983/Using-Camera-Hotkeys-in-SC2); [Liquipedia: StarCraft II hotkeys](https://liquipedia.net/starcraft2/Hotkey); [Red Alert 2 PC controls](https://www.magicgameworld.com/?p=128534); [Push-Edge and Slide-Edge study](https://hal.archives-ouvertes.fr/hal-01110989) on scrolling by pushing against the edge.
 
 ## Story and world
 

@@ -5,6 +5,27 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-09
 
+### Classic RTS controls
+- Edge scrolling now works in a window: the mouse is confined to the window
+  (F9 frees it), the edge band is measured in screen pixels so Retina scaling no
+  longer shrinks it, a cursor that slips onto the menu bar or Dock still
+  scrolls, and the speed ramps with depth into the band and time held. Panning
+  glides to a stop. Scroll speed on - and =; Home resets the camera.
+- Classic key layout: arrows move the camera; A attack-move, S stop, H hold
+  position, P patrol (R and X still work). WASD no longer pans. Help moved to F10
+  or ?.
+- Shift queues move, attack-move, attack and patrol orders. Patrol walks back
+  and forth attacking what it meets. Hold position never chases. Idle units now
+  go after enemies in sight and walk back to where they stood.
+- Ctrl/Cmd+click selects all units of that type on screen. Right click cancels
+  an armed order.
+- "Units under attack" alert when fire lands off screen, with a minimap ping;
+  Space jumps the camera there.
+- Minimap right click sends the selected units.
+- Unit voice acknowledgements and alerts through the system text-to-speech
+  voices until recorded lines exist (V toggles). `scripts/audio/unit_voice.gd`.
+- Research and sources for all of this: `docs/DESIGN.md`, "Controls and camera".
+
 ### First run on the target Mac (M4 Pro MacBook Pro, Godot 4.7.2)
 
 Performance, measured with the window maximised on the Retina display (3670 x 2346):

@@ -1,11 +1,16 @@
 class_name SelectionManager
 extends Node
 ## Mouse and keyboard command layer: click and box selection, double-click
-## select-by-type, control groups, move / attack / attack-move / stop orders,
-## formation spreading and the commander's Precision Strike and Airstrike.
+## and Ctrl+click select-by-type, control groups, move / attack / attack-move /
+## stop / hold / patrol orders with Shift queueing, formation spreading, unit
+## voice acknowledgements, "under attack" alerts with Space to jump, and the
+## commander's Precision Strike and Airstrike.
+
+const UnitVoice := preload("res://scripts/audio/unit_voice.gd")
 
 signal selection_changed(units: Array[Unit])
 signal strike_ready_changed(ready: bool)
+signal alert_raised(pos: Vector3)
 
 const DRAG_THRESHOLD := 6.0
 const STRIKE_COOLDOWN := 25.0
@@ -19,6 +24,10 @@ var groups := {}
 var drag_start := Vector2.ZERO
 var dragging := false
 var attack_move_armed := false
+var patrol_armed := false
+## Last place our units took fire, for Space and the minimap ping.
+var alert_pos := Vector3.INF
+var alert_time := -100.0
 var strike_armed := false
 var strike_cooldown := 0.0
 var airstrike_armed := false
@@ -28,6 +37,7 @@ var hovered: Unit
 var _last_click_time := 0.0
 var _last_group_key := -1
 var _last_group_time := 0.0
+var _last_alert_raise := -100.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -41,9 +51,17 @@ func _unhandled_input(event: InputEvent) -> void:
 				if airstrike_armed:
 					_call_airstrike(mb.position)
 					return
-				if attack_move_armed:
-					_issue_ground_order(mb.position, true)
-					attack_move_armed = false
+				if attack_move_armed or patrol_armed:
+					var p := ground_point(mb.position)
+					if p != Vector3.INF:
+						if patrol_armed:
+							_patrol_to(p)
+						else:
+							order_to_point(p, true, mb.shift_pressed)
+					# Shift keeps the order armed so several points can be queued.
+					if not mb.shift_pressed:
+						attack_move_armed = false
+						patrol_armed = false
 					return
 				drag_start = mb.position
 				dragging = true
@@ -52,19 +70,25 @@ func _unhandled_input(event: InputEvent) -> void:
 				if drag_start.distance_to(mb.position) > DRAG_THRESHOLD:
 					_box_select(Rect2(drag_start, mb.position - drag_start).abs(), mb.shift_pressed)
 				else:
-					_click_select(mb.position, mb.shift_pressed, mb.double_click)
+					_click_select(mb.position, mb.shift_pressed, mb.double_click or mb.ctrl_pressed or mb.meta_pressed)
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
-			attack_move_armed = false
-			strike_armed = false
-			airstrike_armed = false
+			if attack_move_armed or patrol_armed or strike_armed or airstrike_armed:
+				# Right click cancels an armed order, as in every classic RTS.
+				_disarm()
+				return
 			var u := _unit_at(mb.position)
+			var own := _only_own(selected)
 			if u != null and u.team != Battlefield.COALITION:
-				for s in selected:
-					s.order_attack(u)
+				for s in own:
+					s.order_attack(u, mb.shift_pressed)
 				VFX.ground_ring(u.global_position, Color(3, 0.4, 0.3, 1), u.def["radius"] * 1.6, 0.5)
 				Audio.play_ui("ui_confirm")
+				if not own.is_empty():
+					UnitVoice.ack("attack", own[0].def["model"])
 			else:
-				_issue_ground_order(mb.position, false)
+				var p := ground_point(mb.position)
+				if p != Vector3.INF:
+					order_to_point(p, false, mb.shift_pressed)
 	elif event is InputEventMouseMotion:
 		hovered = _unit_at((event as InputEventMouseMotion).position)
 	elif event is InputEventKey and event.pressed and not event.echo:
@@ -73,10 +97,24 @@ func _unhandled_input(event: InputEvent) -> void:
 			_handle_group_key(k.keycode - KEY_0, k.ctrl_pressed or k.meta_pressed)
 			return
 		if event.is_action_pressed("order_stop"):
-			for s in selected:
+			for s in _only_own(selected):
 				s.order_stop()
+		elif event.is_action_pressed("order_hold"):
+			for s in _only_own(selected):
+				s.order_hold()
+			if not _only_own(selected).is_empty():
+				Audio.play_ui("ui_confirm")
 		elif event.is_action_pressed("order_attack_move"):
-			attack_move_armed = not selected.is_empty()
+			_disarm()
+			attack_move_armed = not _only_own(selected).is_empty()
+		elif event.is_action_pressed("order_patrol"):
+			_disarm()
+			patrol_armed = not _only_own(selected).is_empty()
+		elif event.is_action_pressed("jump_to_alert"):
+			if alert_pos != Vector3.INF:
+				rig.focus_on(alert_pos)
+		elif event.is_action_pressed("toggle_voices"):
+			UnitVoice.toggle()
 		elif event.is_action_pressed("ability_strike"):
 			strike_armed = strike_cooldown <= 0.0
 			airstrike_armed = false
@@ -96,9 +134,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.is_action_pressed("cycle_time_of_day"):
 			battlefield.cycle_time_of_day()
 		elif event.is_action_pressed("cancel"):
-			attack_move_armed = false
-			strike_armed = false
-			airstrike_armed = false
+			_disarm()
+
+
+func _disarm() -> void:
+	attack_move_armed = false
+	patrol_armed = false
+	strike_armed = false
+	airstrike_armed = false
 
 
 func _process(delta: float) -> void:
@@ -107,6 +150,7 @@ func _process(delta: float) -> void:
 		if strike_cooldown == 0.0:
 			strike_ready_changed.emit(true)
 	airstrike_cooldown = maxf(airstrike_cooldown - delta, 0.0)
+	_check_alerts()
 	# Drop dead units from the selection and groups.
 	# Freed units cannot be passed to a typed parameter, so the lambda is untyped.
 	var alive := selected.filter(func(u) -> bool: return is_instance_valid(u) and u.is_alive())
@@ -115,6 +159,26 @@ func _process(delta: float) -> void:
 		typed.assign(alive)
 		selected = typed
 		selection_changed.emit(selected)
+
+
+## Raise an "under attack" alert when our units take fire somewhere the
+## player is not looking, at most every 8 seconds (EVA-style spacing).
+func _check_alerts() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	var newest: Unit = null
+	for u in _own_units():
+		if now - u.last_hit_time < 0.5 and (newest == null or u.last_hit_time > newest.last_hit_time):
+			newest = u
+	if newest == null:
+		return
+	if now - alert_time > 1.0 or alert_pos.distance_to(newest.global_position) > 25.0:
+		alert_pos = newest.global_position
+		alert_time = now
+	var off_screen := not _on_screen(newest) or not get_viewport().get_visible_rect().has_point(_screen_pos(newest))
+	if off_screen and now - _last_alert_raise > 8.0:
+		_last_alert_raise = now
+		alert_raised.emit(alert_pos)
+		UnitVoice.alert("under_attack")
 
 
 func _own_units() -> Array[Unit]:
@@ -157,6 +221,8 @@ func _set_selection(units: Array[Unit]) -> void:
 		u.selected = true
 	if not selected.is_empty():
 		Audio.play_ui("ui_select")
+		if selected[0].team == Battlefield.COALITION:
+			UnitVoice.ack("select", selected[0].def["model"])
 	selection_changed.emit(selected)
 
 
@@ -222,16 +288,35 @@ func ground_point(screen: Vector2) -> Vector3:
 	return hit["position"]
 
 
-func _issue_ground_order(screen: Vector2, attack_move: bool) -> void:
+## Move (or attack-move) the selection to a world point in a loose
+## formation. With queue (Shift) the order is added after the current one.
+func order_to_point(p: Vector3, attack_move: bool, queue := false) -> void:
 	var own := _only_own(selected)
 	if own.is_empty():
 		return
-	var p := ground_point(screen)
-	if p == Vector3.INF:
-		return
 	VFX.ground_ring(p, Color(3, 1.2, 0.3, 1) if attack_move else Color(0.5, 3, 1.2, 1), 1.2, 0.6)
 	Audio.play_ui("ui_confirm")
-	# Spread the group in a loose grid around the click, facing the move.
+	UnitVoice.ack("attack" if attack_move else "move", own[0].def["model"])
+	var slots := _formation(own, p)
+	for i in own.size():
+		own[i].order_move(slots[i], attack_move, queue)
+
+
+func _patrol_to(p: Vector3) -> void:
+	var own := _only_own(selected)
+	if own.is_empty():
+		return
+	VFX.ground_ring(p, Color(0.6, 1.2, 3, 1), 1.2, 0.6)
+	Audio.play_ui("ui_confirm")
+	UnitVoice.ack("move", own[0].def["model"])
+	var slots := _formation(own, p)
+	for i in own.size():
+		own[i].order_patrol(slots[i])
+
+
+## Spread a group in a loose grid around p, facing the move, heavy units in
+## front and infantry behind. Sorts own in place to match the returned slots.
+func _formation(own: Array[Unit], p: Vector3) -> Array[Vector3]:
 	var center := Vector3.ZERO
 	for u in own:
 		center += u.global_position
@@ -242,14 +327,14 @@ func _issue_ground_order(screen: Vector2, attack_move: bool) -> void:
 	var right := dir.cross(Vector3.UP).normalized()
 	var cols := ceili(sqrt(own.size()))
 	var spacing := 3.2
-	# Heavy units in front, infantry behind.
 	own.sort_custom(func(a: Unit, b: Unit) -> bool: return float(a.def["radius"]) > float(b.def["radius"]))
+	var out: Array[Vector3] = []
 	for i in own.size():
 		var row := i / cols
 		var col := i % cols
 		var offset := right * (col - (cols - 1) * 0.5) * spacing - dir * row * spacing
-		var dest := battlefield.terrain.clamp_to_map(p + offset)
-		own[i].order_move(dest, attack_move)
+		out.append(battlefield.terrain.clamp_to_map(p + offset))
+	return out
 
 
 func _handle_group_key(n: int, assign: bool) -> void:

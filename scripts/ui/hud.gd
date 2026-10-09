@@ -4,6 +4,8 @@ extends CanvasLayer
 ## selection box, alerts and the controls overlay. Built in code so the
 ## layout scales with the window (Retina included).
 
+const UnitVoice := preload("res://scripts/audio/unit_voice.gd")
+
 const ACCENT := Color(0.3, 0.85, 1.0)
 const WARN := Color(1.0, 0.45, 0.25)
 const PANEL_BG := Color(0.03, 0.05, 0.07, 0.8)
@@ -84,15 +86,16 @@ func _ready() -> void:
 	_help.offset_top = 70
 	var help := _label(13)
 	help.text = "\n".join([
-		"LEFT click / drag   select units (shift adds, double-click = all of type)",
-		"RIGHT click         move, or attack the enemy under the cursor",
-		"R then click        attack-move     X  stop     TAB  select army",
+		"LEFT click / drag   select (Shift adds, double-click or Ctrl+click = all of type)",
+		"RIGHT click         move, or attack the enemy under the cursor (Shift queues)",
+		"A  attack-move   S  stop   H  hold position   P  patrol   TAB  select army",
 		"Ctrl/Cmd+1..9       set group       1..9  recall (twice = jump)",
-		"F then click        Precision Strike (hypersonic, makes a crater)",
-		"G then click        Airstrike (two jets bomb a line)   F7  VFX showcase",
-		"WASD / edges / pinch / two-finger   pan & zoom     Q E  rotate",
-		"T  time of day      F1-F4  graphics preset   F5  HDR   F11  fullscreen",
-		"H  hide this help",
+		"SPACE  jump to the last alert       HOME  reset camera",
+		"Mouse at screen edge / arrows / middle drag   pan     wheel / pinch  zoom",
+		"Q E  rotate    - =  scroll speed    F9  lock mouse to window    V  voices",
+		"F then click  Precision Strike      G then click  Airstrike     F7  VFX showcase",
+		"Minimap: left click jumps, right click sends the selected units",
+		"T  time of day   F1-F4  graphics   F5  HDR   F11  fullscreen   F10 or ?  help",
 	])
 	_help.add_child(help)
 
@@ -116,7 +119,11 @@ func setup(bf: Battlefield, sel: SelectionManager, camera_rig: RTSCamera, p_ai: 
 	ai = p_ai
 	_minimap_tex = ImageTexture.create_from_image(bf.terrain.build_minimap_image())
 	VFX.flash_requested.connect(_on_flash)
-	ai.wave_incoming.connect(func(i: int, total: int) -> void: show_message("Enemy wave %d of %d incoming from the mountains" % [i, total], WARN))
+	ai.wave_incoming.connect(func(i: int, total: int) -> void:
+		show_message("Enemy wave %d of %d incoming from the mountains" % [i, total], WARN)
+		UnitVoice.alert("wave", 0.0))
+	rig.setting_changed.connect(func(text: String) -> void: show_message(text, ACCENT, 2.0))
+	sel.alert_raised.connect(func(_pos: Vector3) -> void: show_message("Units under attack  (SPACE to jump there)", WARN, 3.0))
 	GameSettings.preset_changed.connect(_on_preset_changed)
 	_on_preset_changed(GameSettings.preset)
 
@@ -165,8 +172,7 @@ func show_message(text: String, color := ACCENT, duration := 4.0) -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	var k := event as InputEventKey
-	if k and k.pressed and not k.echo and k.physical_keycode == KEY_H:
+	if event.is_action_pressed("toggle_help"):
 		_help.visible = not _help.visible
 
 
@@ -243,7 +249,7 @@ func _draw_overlay() -> void:
 		if rect.size.length() > SelectionManager.DRAG_THRESHOLD:
 			_overlay.draw_rect(rect, Color(ACCENT, 0.12))
 			_overlay.draw_rect(rect, Color(ACCENT, 0.9), false, 1.5)
-	if selection.strike_armed or selection.airstrike_armed or selection.attack_move_armed:
+	if selection.strike_armed or selection.airstrike_armed or selection.attack_move_armed or selection.patrol_armed:
 		var m := _overlay.get_local_mouse_position()
 		var c := WARN if selection.strike_armed or selection.airstrike_armed else Color(1.0, 0.8, 0.3)
 		_overlay.draw_arc(m, 16, 0, TAU, 32, c, 2.0)
@@ -273,12 +279,28 @@ func _draw_minimap() -> void:
 			gp = rig.get_focus()
 		corners.append(Vector2(gp.x, gp.z) * k)
 	corners.append(corners[0])
+	# Classic minimap ping: expanding rings where our units were hit.
+	var age := Time.get_ticks_msec() / 1000.0 - selection.alert_time
+	if selection.alert_pos != Vector3.INF and age < 4.0:
+		var ap := Vector2(selection.alert_pos.x, selection.alert_pos.z) / Battlefield.MAP_SIZE * s
+		for k in 2:
+			var ph := fmod(age * 1.2 + k * 0.5, 1.0)
+			_minimap.draw_arc(ap, 4.0 + ph * 18.0, 0.0, TAU, 24, Color(WARN, 1.0 - ph), 1.5)
 	_minimap.draw_polyline(PackedVector2Array(corners), Color(1, 1, 1, 0.8), 1.2)
 	_minimap.draw_rect(Rect2(Vector2.ZERO, s), Color(ACCENT, 0.5), false, 1.0)
 
 
 func _on_minimap_input(event: InputEvent) -> void:
-	var press := event is InputEventMouseButton and (event as InputEventMouseButton).pressed and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT
+	var mb := event as InputEventMouseButton
+	if mb and mb.pressed and mb.button_index == MOUSE_BUTTON_RIGHT:
+		# Right click on the minimap orders the selection there (C&C, SC2).
+		var w := mb.position / _minimap.size.x * Battlefield.MAP_SIZE
+		var p := Vector3(w.x, 0, w.y)
+		p.y = battlefield.terrain.height_at(p)
+		selection.order_to_point(p, false, mb.shift_pressed)
+		_minimap.accept_event()
+		return
+	var press := mb != null and mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT
 	var drag := event is InputEventMouseMotion and ((event as InputEventMouseMotion).button_mask & MOUSE_BUTTON_MASK_LEFT) != 0
 	if press or drag:
 		var p := (event as InputEventMouse).position / _minimap.size.x * Battlefield.MAP_SIZE

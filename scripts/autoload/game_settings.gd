@@ -191,14 +191,26 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 func _register_input_actions() -> void:
 	var keys := {
-		"cam_left": [KEY_A, KEY_LEFT],
-		"cam_right": [KEY_D, KEY_RIGHT],
-		"cam_forward": [KEY_W, KEY_UP],
-		"cam_back": [KEY_S, KEY_DOWN],
+		# Classic RTS layout: arrows and the screen edge move the camera, the
+		# left hand stays on the command keys (A attack-move, S stop, H hold,
+		# P patrol), as in StarCraft, Red Alert 2 and C&C Remastered.
+		"cam_left": [KEY_LEFT],
+		"cam_right": [KEY_RIGHT],
+		"cam_forward": [KEY_UP],
+		"cam_back": [KEY_DOWN],
 		"cam_rotate_left": [KEY_Q],
 		"cam_rotate_right": [KEY_E],
-		"order_attack_move": [KEY_R],
-		"order_stop": [KEY_X],
+		"cam_reset": [KEY_HOME],
+		"cam_scroll_faster": [KEY_EQUAL],
+		"cam_scroll_slower": [KEY_MINUS],
+		"cam_lock_mouse": [KEY_F9],
+		"jump_to_alert": [KEY_SPACE],
+		"order_attack_move": [KEY_A, KEY_R],
+		"order_stop": [KEY_S, KEY_X],
+		"order_hold": [KEY_H],
+		"order_patrol": [KEY_P],
+		"toggle_voices": [KEY_V],
+		"toggle_help": [KEY_F10, KEY_SLASH],
 		"ability_strike": [KEY_F],
 		"ability_airstrike": [KEY_G],
 		"vfx_showcase": [KEY_F7],

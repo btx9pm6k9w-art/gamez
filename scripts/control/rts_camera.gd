@@ -1,8 +1,16 @@
 class_name RTSCamera
 extends Node3D
-## Isometric-style RTS camera: pan (keys, screen edge, middle drag, trackpad),
-## smooth zoom (wheel, pinch), 45-degree rotation steps, screen shake and a
-## subtle depth of field that tightens as you zoom in.
+## Isometric-style RTS camera: pan (arrow keys, screen edge, middle drag,
+## trackpad), smooth zoom (wheel, pinch), 45-degree rotation steps, screen
+## shake and a subtle depth of field that tightens as you zoom in.
+##
+## Edge scrolling follows the classic RTS rules (C&C, Red Alert, StarCraft,
+## OpenRA): the cursor is confined to the window so it can be pushed against
+## the edge, the scroll zone is a thin band measured in screen pixels, and the
+## speed ramps up the deeper the cursor sits in the band and the longer it is
+## held there. See docs/DESIGN.md, "Controls and camera".
+
+signal setting_changed(text: String)
 
 const MIN_DIST := 16.0
 const MAX_DIST := 95.0
@@ -10,6 +18,12 @@ const MAX_DIST := 95.0
 var camera: Camera3D
 var map_size := 192.0
 var edge_pan := true
+## Keep the cursor inside the window so it can push against the screen edge.
+var lock_mouse := true
+## Edge band as a fraction of the window's shorter side (min 10 screen pixels).
+var edge_margin := 0.012
+## Player scroll speed multiplier, changed with - and = in game.
+var scroll_speed := 1.0
 
 var _dist := 55.0
 var _dist_target := 55.0
@@ -19,6 +33,9 @@ var _focus := Vector3.ZERO
 var _trauma := 0.0
 var _dragging := false
 var _attrs: CameraAttributesPractical
+var _pan_vel := Vector2.ZERO
+var _edge_time := 0.0
+var _focused := true
 
 
 func _ready() -> void:
@@ -35,6 +52,7 @@ func _ready() -> void:
 	camera.make_current()
 	_focus = position
 	VFX.shake_requested.connect(_on_shake)
+	_apply_mouse_lock()
 
 
 func focus_on(p: Vector3) -> void:
@@ -70,10 +88,67 @@ func _unhandled_input(event: InputEvent) -> void:
 		# Two-finger trackpad scroll pans the map.
 		var pg := event as InputEventPanGesture
 		_pan(pg.delta * _dist * 0.02)
+	elif event.is_action_pressed("cam_scroll_faster"):
+		_set_scroll_speed(scroll_speed + 0.25)
+	elif event.is_action_pressed("cam_scroll_slower"):
+		_set_scroll_speed(scroll_speed - 0.25)
+	elif event.is_action_pressed("cam_lock_mouse"):
+		lock_mouse = not lock_mouse
+		_apply_mouse_lock()
+		setting_changed.emit("Mouse locked to window" if lock_mouse else "Mouse free (edge scrolling only inside the window)")
+	elif event.is_action_pressed("cam_reset"):
+		_yaw_target = deg_to_rad(-30.0)
+		_dist_target = 55.0
 	elif event.is_action_pressed("cam_rotate_left"):
 		_yaw_target += deg_to_rad(45.0)
 	elif event.is_action_pressed("cam_rotate_right"):
 		_yaw_target -= deg_to_rad(45.0)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_focused = false
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	elif what == NOTIFICATION_APPLICATION_FOCUS_IN:
+		_focused = true
+		_apply_mouse_lock()
+
+
+func _apply_mouse_lock() -> void:
+	if lock_mouse and _focused:
+		Input.mouse_mode = Input.MOUSE_MODE_CONFINED
+	else:
+		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+
+
+func _set_scroll_speed(v: float) -> void:
+	scroll_speed = clampf(v, 0.25, 3.0)
+	setting_changed.emit("Scroll speed %d%%" % roundi(scroll_speed * 100.0))
+
+
+## Edge-scroll direction and strength (0..1 per axis) from the cursor's
+## position in screen pixels. Works with HiDPI and the HUD's content scale
+## because it never uses viewport coordinates. When the mouse is not locked,
+## a cursor that has slipped just past the window edge (onto the menu bar or
+## the Dock) still counts, so a maximised window scrolls like a fullscreen one.
+func _edge_vector() -> Vector2:
+	var win := get_window()
+	var rel := Vector2(DisplayServer.mouse_get_position() - win.position)
+	var size := Vector2(win.size)
+	var band := maxf(10.0, minf(size.x, size.y) * edge_margin)
+	var slack := band * 6.0
+	if rel.x < -slack or rel.y < -slack or rel.x > size.x + slack or rel.y > size.y + slack:
+		return Vector2.ZERO
+	var v := Vector2.ZERO
+	if rel.x < band:
+		v.x = -clampf(1.0 - rel.x / band, 0.0, 1.0)
+	elif rel.x > size.x - band:
+		v.x = clampf(1.0 - (size.x - rel.x) / band, 0.0, 1.0)
+	if rel.y < band:
+		v.y = -clampf(1.0 - rel.y / band, 0.0, 1.0)
+	elif rel.y > size.y - band:
+		v.y = clampf(1.0 - (size.y - rel.y) / band, 0.0, 1.0)
+	return v
 
 
 func _pan(screen_delta: Vector2) -> void:
@@ -86,22 +161,24 @@ func _process(delta: float) -> void:
 	var move := Vector2.ZERO
 	move.x = Input.get_axis("cam_left", "cam_right")
 	move.y = Input.get_axis("cam_forward", "cam_back")
-	if edge_pan and DisplayServer.window_is_focused():
-		var vp := get_viewport()
-		var m := vp.get_mouse_position()
-		var s := vp.get_visible_rect().size
-		var margin := 6.0
-		if m.x >= 0 and m.y >= 0 and m.x <= s.x and m.y <= s.y:
-			if m.x < margin:
-				move.x = -1
-			elif m.x > s.x - margin:
-				move.x = 1
-			if m.y < margin:
-				move.y = -1
-			elif m.y > s.y - margin:
-				move.y = 1
-	if move != Vector2.ZERO:
-		_pan(move.normalized() * delta * (20.0 + _dist * 0.9))
+	if edge_pan and _focused and DisplayServer.window_is_focused() and not _dragging:
+		var e := _edge_vector()
+		if e != Vector2.ZERO:
+			_edge_time += delta
+			# Half speed on first touch, full speed after half a second, and
+			# deeper into the band is faster (OpenRA and SC2 both ramp).
+			var ramp := lerpf(0.45, 1.0, clampf(_edge_time / 0.5, 0.0, 1.0))
+			var depth := Vector2(signf(e.x) * lerpf(0.6, 1.0, absf(e.x)), signf(e.y) * lerpf(0.6, 1.0, absf(e.y)))
+			move = (move + depth * ramp).limit_length(1.0)
+		else:
+			_edge_time = 0.0
+	if move.length() > 1.0:
+		move = move.normalized()
+	# Smooth start and stop so the view glides instead of jerking.
+	var target_vel := move * (20.0 + _dist * 0.9) * scroll_speed
+	_pan_vel = _pan_vel.lerp(target_vel, clampf(delta * 10.0, 0.0, 1.0))
+	if _pan_vel.length_squared() > 0.0004:
+		_pan(_pan_vel * delta)
 
 	_focus.x = clampf(_focus.x, 0.0, map_size)
 	_focus.z = clampf(_focus.z, 0.0, map_size)

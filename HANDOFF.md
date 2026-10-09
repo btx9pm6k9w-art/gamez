@@ -103,18 +103,24 @@ headless to catch script and shader compile errors.
 
 | Input | Action |
 | --- | --- |
-| Left click / drag | Select (Shift adds, double-click selects all of a type) |
-| Right click | Move, or attack the enemy under the cursor |
-| R then click | Attack-move |
-| X | Stop |
-| Ctrl/Cmd + 1..9, then 1..9 | Set and recall control groups |
+| Left click / drag | Select (Shift adds; double-click or Ctrl/Cmd+click selects all of that type on screen) |
+| Right click | Move, or attack the enemy under the cursor. Shift queues waypoints. Cancels an armed order |
+| A then click | Attack-move (R also works). Shift+click queues several points |
+| S, H, P | Stop (X also works), hold position, patrol |
+| Ctrl/Cmd + 1..9, then 1..9 | Set and recall control groups; press twice to jump the camera |
+| Tab | Select the whole army |
+| Space | Jump to the last "units under attack" alert |
+| Mouse at screen edge, arrow keys, middle drag, trackpad | Pan; wheel or pinch zooms; Q and E rotate; Home resets |
+| - and = | Scroll speed |
+| F9 | Lock or free the mouse (locked by default so edge scrolling works in a window) |
+| V | Unit voices on or off |
+| Minimap | Left click or drag jumps; right click sends the selection |
 | F then click | Precision Strike |
 | G then click | Airstrike |
 | F7 | VFX showcase (free airstrike at the camera) |
-| WASD, screen edges, trackpad | Pan; pinch or wheel to zoom; Q and E rotate |
 | T | Time of day |
 | F1 to F4, F5, F11 | Quality preset, HDR toggle, fullscreen |
-| F6, H | Restart, hide help |
+| F6, F10 or ? | Restart, show or hide help |
 
 ## Code map
 

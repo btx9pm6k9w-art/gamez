@@ -25,6 +25,8 @@ included yet.
 | --- | --- | --- |
 | [Open RTS by Lampe Games](https://github.com/lampe-games/godot-open-rts) | MIT | Navmesh re-bake and unit structure in Godot 4 |
 | Godot 4.6 and 4.7 release notes | Articles | Rendering features (SSR rewrite, glow before tonemapping, HDR output) |
+| [OpenRA](https://github.com/OpenRA/OpenRA) `ViewportControllerWidget.cs`, `Settings.cs` | GPL-3.0 (read only, no code copied) | Edge-scroll band, scroll speed setting, lock-mouse-to-window option |
+| C&C Remastered, Red Alert 2 and StarCraft II control guides (EA Help, Blizzard, Liquipedia) | Articles | Classic command keys, Shift queueing, alerts and Space to jump; full list in `docs/DESIGN.md` |
 
 ## Candidates for the art and audio pass
 
