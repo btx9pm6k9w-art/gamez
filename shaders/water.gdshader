@@ -26,8 +26,11 @@ void fragment() {
 	vec2 uv = world_pos.xz;
 	vec2 map_uv = uv / map_size;
 	float ground = texture(terrain_height, clamp(map_uv, vec2(0.0), vec2(1.0))).r;
-	bool inside = map_uv.x >= 0.0 && map_uv.x <= 1.0 && map_uv.y >= 0.0 && map_uv.y <= 1.0;
-	float depth = inside ? max(water_level - ground, 0.0) : 6.0;
+	// Outside the map there is no heightmap, so the sea is deep. Blend into
+	// that over the last 12 m instead of switching at the edge, which drew a
+	// straight seam across the water west of the pier.
+	float edge = min(min(uv.x, map_size - uv.x), min(uv.y, map_size - uv.y));
+	float depth = mix(6.0, max(water_level - ground, 0.0), smoothstep(0.0, 12.0, edge));
 
 	float shallow = 1.0 - smoothstep(0.0, 4.0, depth);
 	ALBEDO = mix(deep_color, shallow_color, shallow);

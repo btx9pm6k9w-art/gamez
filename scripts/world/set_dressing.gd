@@ -80,6 +80,45 @@ static func mat(key: String) -> StandardMaterial3D:
 	return m
 
 
+## Merge the static meshes directly under root into one MeshInstance3D with a
+## surface per material. A ghaf tree goes from about 10 draw calls to 2; the
+## battlefield has hundreds of these props, so this keeps the scene from being
+## draw-call bound. Pivots (Beam, Lamp, FlareTip...) and their children are
+## left alone so animation still works.
+static func bake(root: Node3D) -> Node3D:
+	var by_mat := {}
+	var merged: Array[MeshInstance3D] = []
+	for c in root.get_children():
+		var mi := c as MeshInstance3D
+		if mi == null or mi.mesh == null or mi.get_child_count() > 0:
+			continue
+		for si in mi.mesh.get_surface_count():
+			var m: Material = mi.material_override if mi.material_override else mi.mesh.surface_get_material(si)
+			if not by_mat.has(m):
+				var st := SurfaceTool.new()
+				st.begin(Mesh.PRIMITIVE_TRIANGLES)
+				st.set_material(m)
+				by_mat[m] = st
+			(by_mat[m] as SurfaceTool).append_from(mi.mesh, si, mi.transform)
+		merged.append(mi)
+	if merged.size() < 2:
+		return root
+	var am := ArrayMesh.new()
+	for m in by_mat:
+		var st: SurfaceTool = by_mat[m]
+		st.set_material(m)
+		am = st.commit(am)
+	for mi in merged:
+		root.remove_child(mi)
+		mi.free()
+	var baked := MeshInstance3D.new()
+	baked.name = "Baked"
+	baked.mesh = am
+	root.add_child(baked)
+	root.move_child(baked, 0)
+	return root
+
+
 static func _mi(parent: Node3D, mesh: Mesh, pos: Vector3, material: Material, rot := Vector3.ZERO, scale := Vector3.ONE) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
@@ -147,7 +186,7 @@ static func ghaf(rng: RandomNumberGenerator) -> Node3D:
 	for c in 5:
 		var off := Vector3(rng.randf_range(-1, 1), rng.randf_range(0.0, 0.4), rng.randf_range(-1, 1)) * w * 0.55
 		_blob(root, w * rng.randf_range(0.45, 0.65), top + Vector3.UP * 1.1 + off, mat("ghaf_leaf"), 0.32)
-	return root
+	return bake(root)
 
 
 ## Grey mangrove clump: dense dark canopy standing on arching stilt roots.
@@ -160,7 +199,7 @@ static func mangrove(rng: RandomNumberGenerator) -> Node3D:
 	for c in 4:
 		var off := Vector3(rng.randf_range(-1, 1), rng.randf_range(0, 0.5), rng.randf_range(-1, 1)) * 1.1
 		_blob(root, rng.randf_range(1.0, 1.5), Vector3.UP * 1.9 + off, mat("mangrove"), 0.7)
-	return root
+	return bake(root)
 
 
 ## Low desert shrub mesh used for the instanced scatter.
@@ -198,7 +237,7 @@ static func sandstone_pillar(rng: RandomNumberGenerator) -> Node3D:
 		var slab := _cyl(root, r * 0.92, r, h, Vector3(rng.randf_range(-0.3, 0.3), y + h * 0.5, rng.randf_range(-0.3, 0.3)), mat("sandstone"), Vector3(0, rng.randf() * TAU, 0), 7)
 		slab.scale = Vector3(1.0, 1.0, rng.randf_range(0.7, 1.0))
 		y += h * 0.95
-	return root
+	return bake(root)
 
 
 # --- Industry --------------------------------------------------------------
@@ -221,7 +260,7 @@ static func pumpjack() -> Node3D:
 	_box(beam, Vector3(0.1, 4.0, 0.1), Vector3(0, -2.2, -4.1), mat("steel")) # bridle
 	_box(root, Vector3(1.4, 1.6, 1.6), Vector3(0, 0.9, 2.4), mat("rust")) # gearbox
 	_cyl(root, 0.18, 0.18, 2.0, Vector3(0, 1.0, -3.7), mat("steel"))
-	return root
+	return bake(root)
 
 
 ## Gas flare stack; the battlefield puts a permanent fire on top.
@@ -231,7 +270,7 @@ static func flare_stack(height: float) -> Node3D:
 	for i in int(height / 4.0):
 		_cyl(root, 0.6, 0.6, 0.15, Vector3(0, 2.0 + i * 4.0, 0), mat("red" if i % 2 == 0 else "white"), Vector3.ZERO, 10)
 	_night_light(root, Vector3(0, height + 0.5, 0), Color(1.0, 0.25, 0.15), 1.5, 4.0)
-	return root
+	return bake(root)
 
 
 ## Offshore wellhead platform: four legs, two decks, a derrick, helipad,
@@ -264,7 +303,7 @@ static func offshore_platform() -> Node3D:
 	crane.rotation = Vector3(-0.5, 0.7, 0)
 	for p in [Vector3(-7, 11, -7), Vector3(7, 11, 7), Vector3(-7, 15, 7)]:
 		_night_light(root, p, Color(1.0, 0.85, 0.55), 3.0, 14.0)
-	return root
+	return bake(root)
 
 
 # --- Coast -----------------------------------------------------------------
@@ -293,7 +332,7 @@ static func lighthouse() -> Node3D:
 	beam.visible = false
 	beam.add_to_group("night_lights")
 	lamp.add_child(beam)
-	return root
+	return bake(root)
 
 
 ## Concrete pier on pylons with bollards and lamp posts. Extends along -X.
@@ -309,7 +348,7 @@ static func pier(length: float) -> Node3D:
 			_cyl(root, 0.06, 0.08, 4.0, Vector3(-i, 3.7, 2.2), mat("steel"), Vector3.ZERO, 6)
 			_night_light(root, Vector3(-i, 5.6, 2.0), Color(1.0, 0.8, 0.5), 2.5, 10.0)
 		i += 6.0
-	return root
+	return bake(root)
 
 
 static func container(color: Color) -> Node3D:
@@ -322,7 +361,7 @@ static func container(color: Color) -> Node3D:
 	for x in [-1.0, 1.0]:
 		for k in 8:
 			_box(root, Vector3(0.05, 2.4, 0.1), Vector3(1.24 * x, 1.3, -2.6 + k * 0.75), m)
-	return root
+	return bake(root)
 
 
 ## Wooden fishing dhow with a raked bow, high stern and a short mast.
@@ -333,7 +372,7 @@ static func dhow() -> Node3D:
 	_box(root, Vector3(3.2, 1.6, 2.4), Vector3(0, 1.3, 3.8), mat("wood"))
 	_box(root, Vector3(2.4, 1.6, 2.0), Vector3(0, 2.6, 3.8), mat("white"))
 	_cyl(root, 0.1, 0.14, 7.0, Vector3(0, 4.2, -1.5), mat("wood"), Vector3(-0.15, 0, 0), 6)
-	return root
+	return bake(root)
 
 
 ## Far-off shipping that sells the scale of the Strait: a VLCC tanker or a
@@ -357,4 +396,4 @@ static func big_ship(kind: String) -> Node3D:
 		_cyl(root, 0.6, 0.8, 16.0, Vector3(0, 33.0, -10.0), mat("hull_grey"))
 		_cyl(root, 2.0, 2.4, 3.0, Vector3(0, 6.5, -50.0), mat("hull_grey"))
 		_night_light(root, Vector3(0, 42.0, -10.0), Color(1.0, 0.3, 0.2), 6.0, 40.0)
-	return root
+	return bake(root)

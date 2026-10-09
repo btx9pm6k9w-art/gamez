@@ -74,7 +74,7 @@ func setup(id: String, p_team: int, bf: Node) -> void:
 func _ready() -> void:
 	add_to_group("units")
 	add_to_group("team_%d" % team)
-	model = UnitModels.build(def["model"], faction)
+	model = UnitModels.build(def["model"], faction, unit_id)
 	add_child(model)
 	turret = model.find_child("Turret", true, false) as Node3D
 	muzzle = model.find_child("Muzzle", true, false) as Node3D

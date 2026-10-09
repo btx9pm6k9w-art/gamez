@@ -60,7 +60,7 @@ func _ready() -> void:
 		var table := Node3D.new()
 		table.position = pos
 		add_child(table)
-		var model := UnitModels.build(def["model"], def["faction"])
+		var model := UnitModels.build(def["model"], def["faction"], ids[i])
 		if def.get("air", false) or def["model"] == "drone":
 			model.position.y = 2.0
 		table.add_child(model)

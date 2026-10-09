@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Checks that work anywhere, with or without a GPU:
 #  1. gdparse on every GDScript file (needs: pip install "gdtoolkit==4.*")
-#  2. if Godot is installed, a headless start that compiles every script and
+#  2. tools/shadow_check.py: local variable redeclarations Godot rejects
+#  3. if Godot is installed, a headless start that compiles every script and
 #     shader and quits; any SCRIPT ERROR or SHADER ERROR fails the check.
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -16,8 +17,11 @@ else
 	echo "gdparse not installed; skipping syntax check (pip install \"gdtoolkit==4.*\")"
 fi
 
+echo "== shadow check"
+python3 tools/shadow_check.py scripts || status=1
+
 GODOT_BIN=""
-for g in "${GODOT:-}" /Applications/Godot.app/Contents/MacOS/Godot "$(command -v godot || true)" "$(command -v godot4 || true)"; do
+for g in "${GODOT:-}" /Applications/Godot.app/Contents/MacOS/Godot "$HOME/Downloads/Godot.app/Contents/MacOS/Godot" "$(command -v godot || true)" "$(command -v godot4 || true)"; do
 	if [ -n "$g" ] && [ -x "$g" ]; then GODOT_BIN="$g"; break; fi
 done
 if [ -n "$GODOT_BIN" ]; then

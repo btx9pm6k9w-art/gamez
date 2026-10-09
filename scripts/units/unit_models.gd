@@ -134,9 +134,12 @@ static func _headlight(parent: Node3D, pos: Vector3) -> void:
 	parent.add_child(s)
 
 
-static func build(model: String, faction: String) -> Node3D:
+## unit_id is the UnitDefs key (e.g. "javelin" vs "ranger" share the soldier
+## model); it is stored as meta "unit_id" so asset builders can pick variants.
+static func build(model: String, faction: String, unit_id := "") -> Node3D:
 	var root := Node3D.new()
 	root.name = "Model"
+	root.set_meta("unit_id", unit_id if unit_id != "" else model)
 	if _build_from_assets(root, model, faction):
 		return root
 	match model:

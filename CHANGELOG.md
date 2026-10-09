@@ -5,6 +5,17 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-09
 
+### Fixes after the Mac's art-pass run
+- Draw calls: SetDressing props (ghaf trees, mangroves, pillars, pier,
+  containers, dhows, ships, rig, lighthouse, pumpjacks) now merge their static
+  meshes into one mesh per material (`SetDressing.bake`). Animated pivots stay.
+- Sea: removed the straight seam across the water at the map edge west of the
+  pier (depth now blends into deep water over 12 m).
+- `UnitModels.build()` takes the unit id (stored as meta `unit_id`) so Javelin
+  and RPG teams can get their own models.
+- `tools/shadow_check.py` (run by `tools/check.sh`) catches the local variable
+  redeclarations that stopped the RTS-controls commit from loading.
+
 ### Art pass 1: real models, terrain textures, daylight (from the Mac)
 - **Units use real CC0 models** instead of generated boxes: Quaternius tanks with
   separate turrets and animated tracks, rigged and animated soldiers (idle, run,
