@@ -98,6 +98,11 @@ func _ready() -> void:
 			_overlay_layer.add_child(menu)
 			menu.campaign.connect(_show_briefing)
 			menu.showcase.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/unit_showcase.tscn"))
+			for arg in OS.get_cmdline_user_args():
+				if arg.begins_with("--ui-tour="):
+					var tour: Node = preload("res://scripts/dev/ui_tour.gd").new()
+					tour.main = self
+					add_child(tour)
 
 
 func _show_briefing() -> void:

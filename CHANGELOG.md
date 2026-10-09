@@ -5,6 +5,12 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-09
 
+### UI tour for screenshots (from the Mac)
+- `scripts/dev/ui_tour.gd`: `-- --ui-tour=/some/folder` walks the main menu, briefing
+  and in-game HUD states (selection, mixed selection, build queue, strike armed,
+  golden hour) and saves a native-resolution screenshot of each, then quits.
+- The first Mac run of the UI overhaul (623a25a) had no script errors.
+
 ### Fixes from the external code review
 - **Line of fire:** walls, houses, containers, fuel tanks and rocks, and ridges in
   the terrain, now block direct fire. Units only pick targets they can see
