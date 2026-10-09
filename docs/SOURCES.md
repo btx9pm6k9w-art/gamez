@@ -8,9 +8,48 @@ listed here with where to get them. Never commit secrets, keys or personal data.
 
 ## In the repo today
 
-All code, shaders, meshes, textures, sounds and music were written from scratch
-for this project and are generated at runtime. No third-party assets are
-included yet.
+Code, shaders, sounds and music were written from scratch for this project. The
+3D models and terrain textures below are third-party, all CC0 (public domain
+dedication, no attribution required; credited here anyway). Models were
+downloaded as GLB from [Poly Pizza](https://poly.pizza) on 2026-10-09 and are
+unmodified; recolouring and scaling happen in code at load time.
+
+### Models (`assets/models/`)
+
+| File | Source page | Author | Licence |
+| --- | --- | --- | --- |
+| `assets/models/barrier.glb` | [Barrier Single](https://poly.pizza/m/wCUxgt2jSP) | Quaternius | CC0 1.0 |
+| `assets/models/boat_fast.glb` | [Lifeboat](https://poly.pizza/m/Bkd4KKQA4O) | Quaternius | CC0 1.0 |
+| `assets/models/boat_patrol.glb` | [Cruise Ship](https://poly.pizza/m/yq9EKmEmfC) | Quaternius | CC0 1.0 |
+| `assets/models/building_a.glb` | [Small Building](https://poly.pizza/m/yLvnMqC9ZG) | Kenney | CC0 1.0 |
+| `assets/models/building_b.glb` | [Small Building](https://poly.pizza/m/gyjF60t7CG) | Kenney | CC0 1.0 |
+| `assets/models/building_c.glb` | [Small Building](https://poly.pizza/m/QjL4Fo9dU9) | Kenney | CC0 1.0 |
+| `assets/models/building_d.glb` | [Small Building](https://poly.pizza/m/Rq572hdKEz) | Kenney | CC0 1.0 |
+| `assets/models/drone_a.glb` | [Spaceship](https://poly.pizza/m/PQzePrvBCD) | Quaternius | CC0 1.0 |
+| `assets/models/mech_a.glb` | [Mech](https://poly.pizza/m/o3Ps8z8ByP) | Quaternius | CC0 1.0 |
+| `assets/models/palm_a.glb` | [Palm Tree](https://poly.pizza/m/A6cKJYFsIb) | Quaternius | CC0 1.0 |
+| `assets/models/palm_b.glb` | [Palm Tree](https://poly.pizza/m/DsrrAYmucG) | Quaternius | CC0 1.0 |
+| `assets/models/palm_c.glb` | [Palm Tree](https://poly.pizza/m/P0tgwyXBgr) | Quaternius | CC0 1.0 |
+| `assets/models/pickup.glb` | [Pickup Truck](https://poly.pizza/m/qn4grQgHm8) | Quaternius | CC0 1.0 |
+| `assets/models/rifle_ak.glb` | [Assault Rifle](https://poly.pizza/m/K2lXTYFSLC) | Quaternius | CC0 1.0 |
+| `assets/models/rock_a.glb` | [Rock Large](https://poly.pizza/m/54jZKTAt5p) | Quaternius | CC0 1.0 |
+| `assets/models/rock_b.glb` | [Rock Large](https://poly.pizza/m/li0YBlBEMz) | Quaternius | CC0 1.0 |
+| `assets/models/rock_c.glb` | [Rock](https://poly.pizza/m/34W5ymEePk) | Quaternius | CC0 1.0 |
+| `assets/models/rock_d.glb` | [Rock](https://poly.pizza/m/b7gRkv0cEa) | Quaternius | CC0 1.0 |
+| `assets/models/rock_e.glb` | [Rock Large](https://poly.pizza/m/d2VWOdthtR) | Quaternius | CC0 1.0 |
+| `assets/models/soldier_a.glb` | [Character Soldier](https://poly.pizza/m/PpLF4rt4ah) | Quaternius | CC0 1.0 |
+| `assets/models/soldier_b.glb` | [SWAT](https://poly.pizza/m/Btfn3G5Xv4) | Quaternius | CC0 1.0 |
+| `assets/models/tank_a.glb` | [Tank](https://poly.pizza/m/FA5daiyZQq) | Quaternius | CC0 1.0 |
+| `assets/models/tank_b.glb` | [Tank](https://poly.pizza/m/cW3zvvkMOM) | Quaternius | CC0 1.0 |
+| `assets/models/truck_armored.glb` | [Pickup Truck Armored](https://poly.pizza/m/RUwMItmU4B) | Quaternius | CC0 1.0 |
+| `assets/models/turret_cannon.glb` | [Turret Cannon](https://poly.pizza/m/mNJ6poH7Cp) | Quaternius | CC0 1.0 |
+
+### Textures (`assets/textures/`)
+
+| Files | Source page | Author | Licence |
+| --- | --- | --- | --- |
+| `sand_01_diff_1k.jpg`, `sand_01_nor_1k.jpg` | [Sand 01](https://polyhaven.com/a/sand_01) | Poly Haven | CC0 1.0 |
+| `coast_sand_rocks_02_diff_1k.jpg`, `coast_sand_rocks_02_nor_1k.jpg` | [Coast Sand Rocks 02](https://polyhaven.com/a/coast_sand_rocks_02) | Poly Haven | CC0 1.0 |
 
 ## Engine and tools
 

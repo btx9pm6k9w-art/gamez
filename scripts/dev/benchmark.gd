@@ -16,6 +16,8 @@ func _ready() -> void:
 			out_dir = arg.trim_prefix("--benchmark-out=")
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	GameSettings.fps_cap = 0
+	for cam in get_tree().root.find_children("*", "RTSCamera", true, false):
+		(cam as RTSCamera).edge_pan = false # an idle cursor at a screen edge would drift the view
 	_run.call_deferred()
 
 
@@ -75,7 +77,11 @@ func _run() -> void:
 	var win := get_window()
 	print("BENCH adapter=%s window=%s screen_scale=%.1f" % [
 		RenderingServer.get_video_adapter_name(), win.size, DisplayServer.screen_get_scale()])
-	for p in [GameSettings.Preset.LOW, GameSettings.Preset.MEDIUM, GameSettings.Preset.HIGH, GameSettings.Preset.ULTRA]:
+	var presets := [GameSettings.Preset.LOW, GameSettings.Preset.MEDIUM, GameSettings.Preset.HIGH, GameSettings.Preset.ULTRA]
+	for arg in OS.get_cmdline_user_args():
+		if arg.begins_with("--benchmark-only="): # e.g. --benchmark-only=2 for High
+			presets = [int(arg.trim_prefix("--benchmark-only="))]
+	for p: int in presets:
 		GameSettings.apply_preset(p)
 		await get_tree().create_timer(WARMUP).timeout
 		var frames := 0

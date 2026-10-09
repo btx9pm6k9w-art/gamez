@@ -137,6 +137,8 @@ static func _headlight(parent: Node3D, pos: Vector3) -> void:
 static func build(model: String, faction: String) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Model"
+	if _build_from_assets(root, model, faction):
+		return root
 	match model:
 		"tank":
 			_tank(root, faction)
@@ -365,3 +367,248 @@ static func _fast_boat(root: Node3D, faction: String) -> void:
 	turret.add_child(muzzle)
 	_box(root, Vector3(0.9, 0.04, 0.6), Vector3(0, 0.62, 1.2), mat("glow:" + faction)) # flag panel
 	_pivot(root, "Wake", Vector3(0, 0.0, 3.4))
+
+
+# --- Real models (res://assets/models) -------------------------------------
+# Each builder keeps the named pivots the gameplay code relies on ("Turret",
+# "Muzzle", "Engine") and returns false when its files are missing, in which
+# case build() falls back to the primitive stand-ins above.
+
+## Turret width in metres that puts each tank hull at about 8 m long.
+const TANK_TURRET_WIDTH := {"tank_a": 2.7, "tank_b": 2.1}
+## 1 / (model height in its own units), measured in the unit showcase.
+const INFANTRY_SCALE_PER_METRE := {"soldier_a": 0.44, "soldier_b": 0.6, "mech_a": 0.36}
+## The Quaternius soldier ships with every weapon attached; keep one.
+## Yaw that points each boat's bow down -Z.
+const BOAT_YAW := {"boat_patrol": PI, "boat_fast": PI}
+const SOLDIER_WEAPON := "SMG"
+const RIFLE_IN_HAND_ROTATION := Vector3(0, 90, 90)
+const RIFLE_IN_HAND_OFFSET := Vector3(0, 0.05, 0.0)
+const SOLDIER_WEAPONS := ["Revolver", "Sniper", "Revolver_Small", "Pistol", "SMG", "GrenadeLauncher",
+	"ShortCannon", "Shotgun", "Sniper_2", "RocketLauncher", "AK", "Shovel", "Knife_2", "Knife_1"]
+
+
+static func _build_from_assets(root: Node3D, model: String, faction: String) -> bool:
+	var ok := false
+	match model:
+		"tank":
+			ok = _asset_tank(root, faction)
+		"soldier":
+			ok = _asset_infantry(root, faction, "soldier_a" if faction == "coalition" else "soldier_b", 2.5)
+		"robodog":
+			ok = _asset_infantry(root, faction, "mech_a", 2.2)
+		"patrol_boat":
+			ok = _asset_boat(root, faction, "boat_patrol", 12.0, true)
+		"fast_boat":
+			ok = _asset_boat(root, faction, "boat_fast", 7.0, false)
+		"laser_truck":
+			ok = _asset_truck(root, faction, true)
+		"launcher_truck":
+			ok = _asset_truck(root, faction, false)
+		"drone":
+			ok = _asset_drone(root, faction)
+	if ok:
+		ModelLibrary.set_layers(root, UNIT_LAYER)
+	return ok
+
+
+static func _marker(parent: Node3D, node_name: String, pos: Vector3) -> Marker3D:
+	var m := Marker3D.new()
+	m.name = node_name
+	m.position = pos
+	parent.add_child(m)
+	return m
+
+
+## Moves `nodes` under a new "Turret" pivot placed at `pivot_pos` (root space)
+## without changing where they sit.
+static func _make_turret(root: Node3D, nodes: Array, pivot_pos: Vector3) -> Node3D:
+	var turret := _pivot(root, "Turret", pivot_pos)
+	for n: Node3D in nodes:
+		var xf := ModelLibrary.xf_to(n, root)
+		n.get_parent().remove_child(n)
+		n.owner = null
+		turret.add_child(n)
+		n.transform = turret.transform.affine_inverse() * xf
+	return turret
+
+
+static func _asset_tank(root: Node3D, faction: String) -> bool:
+	var file := "tank_a" if faction == "coalition" else "tank_b"
+	if not ModelLibrary.has(file):
+		return false
+	var holder := Node3D.new()
+	holder.name = "Fit"
+	holder.add_child(ModelLibrary.spawn(file))
+	root.add_child(holder)
+	var gun := holder.find_child("Tank_Gun", true, false) as MeshInstance3D
+	var top := holder.find_child("Tank_Turret", true, false) as MeshInstance3D
+	if gun == null or top == null:
+		return false
+	# The hull is skinned (animated tracks), so size and centre the tank from
+	# its rigid turret. The gun tells us which way the model faces; forward is -Z.
+	var dir := ModelLibrary.bounds(root, [gun]).get_center() - ModelLibrary.bounds(root, [top]).get_center()
+	holder.rotation.y = atan2(dir.x, -dir.z)
+	var top_box := ModelLibrary.bounds(root, [top])
+	holder.scale = Vector3.ONE * (float(TANK_TURRET_WIDTH[file]) / top_box.size.x)
+	top_box = ModelLibrary.bounds(root, [top])
+	holder.position = -Vector3(top_box.get_center().x, 0, top_box.get_center().z - 0.3)
+	top_box = ModelLibrary.bounds(root, [top])
+	var gun_box := ModelLibrary.bounds(root, [gun])
+	var top_c := top_box.get_center()
+	var turret := _make_turret(root, [top, gun], Vector3(top_c.x, top_box.position.y, top_c.z))
+	_marker(turret, "Muzzle", Vector3(gun_box.get_center().x, gun_box.get_center().y, gun_box.position.z) - turret.position)
+	_box(turret, Vector3(top_box.size.x * 0.5, 0.06, 0.08),
+		Vector3(0, top_box.size.y + 0.02, top_box.size.z * 0.3), mat("glow:" + faction)) # IFF strip
+	_headlight(root, Vector3(-1.0, 1.3, -3.2))
+	_headlight(root, Vector3(1.0, 1.3, -3.2))
+	_setup_anims(root, {"move": "Tank_Forward"})
+	return true
+
+
+static func _asset_infantry(root: Node3D, faction: String, file: String, height: float) -> bool:
+	if not ModelLibrary.has(file):
+		return false
+	# Quaternius characters face +Z. They are skinned, so their bind-pose box is
+	# unreliable and each file has a hand-measured scale; `height` is the
+	# standing height in game (taller than life so they read at RTS distance).
+	var holder := Node3D.new()
+	holder.name = "Fit"
+	holder.add_child(ModelLibrary.spawn(file))
+	holder.scale = Vector3.ONE * height * float(INFANTRY_SCALE_PER_METRE[file])
+	holder.rotation.y = PI
+	root.add_child(holder)
+	for weapon: String in SOLDIER_WEAPONS:
+		var w := holder.find_child(weapon, true, false)
+		if w and weapon != SOLDIER_WEAPON:
+			w.free()
+	if file == "soldier_b" and ModelLibrary.has("rifle_ak"):
+		# The SWAT figure is unarmed: put a rifle in its right hand.
+		var skeleton := holder.find_child("Skeleton3D", true, false) as Skeleton3D
+		if skeleton and skeleton.find_bone("Wrist.R") >= 0:
+			var hand := BoneAttachment3D.new()
+			hand.bone_name = "Wrist.R"
+			skeleton.add_child(hand)
+			# The armature carries its own scale; undo it so the rifle is 0.95 units long.
+			var k := 1.0 / ModelLibrary.xf_to(skeleton, holder).basis.get_scale().x
+			var rifle := ModelLibrary.fitted("rifle_ak", 0.95 * k)
+			rifle.rotation_degrees = RIFLE_IN_HAND_ROTATION
+			rifle.position = RIFLE_IN_HAND_OFFSET * k
+			hand.add_child(rifle)
+	_marker(root, "Muzzle", Vector3(0.15, height * 0.62, -height * 0.35))
+	_box(root, Vector3(0.5, 0.05, 0.05), Vector3(0, height + 0.25, 0), mat("glow:" + faction))
+	_setup_anims(root, {
+		"idle": ["Idle_Gun", "Idle"],
+		"move": ["Run_Gun", "Run"],
+		"shoot": ["Idle_Gun_Shoot", "Idle_Shoot", "Shoot_Small"],
+	})
+	return true
+
+
+static func _asset_truck(root: Node3D, faction: String, laser: bool) -> bool:
+	var file := "truck_armored" if laser else "pickup"
+	if not ModelLibrary.has(file) or not ModelLibrary.has("turret_cannon") or not ModelLibrary.has("drone_a"):
+		return false
+	var holder := ModelLibrary.fitted(file, 6.2, PI)
+	root.add_child(holder)
+	if not laser: # the civilian pickup is baby blue; repaint it desert olive
+		ModelLibrary.tint(holder, Color(0.62, 0.6, 0.4))
+	var body := ModelLibrary.bounds(root)
+	var bed := Vector3(0, body.size.y * (0.92 if laser else 0.5), body.size.z * 0.2)
+	var turret: Node3D
+	if laser:
+		var mount := ModelLibrary.fitted("turret_cannon", 2.0, PI)
+		mount.position = bed
+		root.add_child(mount)
+		var top := mount.find_child("Turret_Cannon_Top", true, false) as Node3D
+		var top_box := ModelLibrary.bounds(root, [top])
+		var c := top_box.get_center()
+		turret = _make_turret(root, [top], Vector3(c.x, top_box.position.y, c.z))
+		_cyl(turret, 0.16, 0.05, Vector3(0, top_box.size.y * 0.55, top_box.position.z - turret.position.z - 0.03), mat("lens"), Vector3(90, 0, 0))
+		_marker(turret, "Muzzle", Vector3(0, top_box.size.y * 0.55, top_box.position.z - turret.position.z - 0.1))
+	else:
+		turret = _pivot(root, "Turret", bed)
+		var rack := _pivot(turret, "Rack", Vector3(0, 0.35, 0.3))
+		rack.rotation_degrees = Vector3(25, 0, 0)
+		_box(rack, Vector3(2.0, 0.12, 3.0), Vector3.ZERO, mat("dark"))
+		for i in 3:
+			var d := ModelLibrary.fitted("drone_a", 1.5, PI)
+			d.position = Vector3(-0.65 + i * 0.65, 0.1, 0.0)
+			rack.add_child(d)
+		_marker(turret, "Muzzle", Vector3(0, 1.4, -1.6))
+	_box(root, Vector3(1.4, 0.05, 0.06), Vector3(0, body.size.y + 0.03, body.position.z + body.size.z * 0.35), mat("glow:" + faction))
+	_headlight(root, Vector3(-0.8, 1.0, body.position.z))
+	_headlight(root, Vector3(0.8, 1.0, body.position.z))
+	return true
+
+
+static func _asset_boat(root: Node3D, faction: String, file: String, length: float, patrol: bool) -> bool:
+	if not ModelLibrary.has(file):
+		return false
+	var holder := ModelLibrary.fitted(file, length, float(BOAT_YAW[file]))
+	holder.position.y = -0.25 # sit in the water rather than on it
+	root.add_child(holder)
+	if patrol:
+		ModelLibrary.tint(holder, Color(0.62, 0.66, 0.7)) # navy grey
+	else:
+		ModelLibrary.tint(holder, Color(0.36, 0.38, 0.3))
+	var box := ModelLibrary.bounds(root)
+	var deck := 1.05 if patrol else 0.55
+	var turret := _pivot(root, "Turret", Vector3(0, deck, box.position.z + box.size.z * (0.2 if patrol else 0.3)))
+	var k := 1.0 if patrol else 0.6
+	_cyl(turret, 0.45 * k, 0.4 * k, Vector3(0, 0.2 * k, 0), mat("paint:navy" if patrol else "dark"), Vector3.ZERO, 12)
+	_box(turret, Vector3(0.5, 0.35, 0.8) * k, Vector3(0, 0.55 * k, 0), mat("dark"))
+	_cyl(turret, 0.06, 1.6 * k, Vector3(0, 0.55 * k, -1.1 * k), mat("steel"), Vector3(90, 0, 0), 8)
+	_marker(turret, "Muzzle", Vector3(0, 0.55 * k, -1.95 * k))
+	_box(root, Vector3(1.0, 0.05, 0.4), Vector3(0, box.position.y + box.size.y * (0.55 if patrol else 1.0) + 0.05, box.size.z * 0.2), mat("glow:" + faction))
+	if patrol:
+		_headlight(root, Vector3(0, 1.6, -1.0))
+	_pivot(root, "Wake", Vector3(0, 0.0, box.position.z + box.size.z - 0.3))
+	return true
+
+
+static func _asset_drone(root: Node3D, faction: String) -> bool:
+	if not ModelLibrary.has("drone_a"):
+		return false
+	var holder := ModelLibrary.fitted("drone_a", 3.4, PI)
+	holder.position.y = -0.3
+	root.add_child(holder)
+	_box(root, Vector3(0.06, 0.06, 0.06), Vector3(0, -0.12, -1.0), mat("glow:" + faction))
+	_marker(root, "Engine", Vector3(0, 0.08, 1.7))
+	return true
+
+
+## Stores the model's AnimationPlayer and the clips to use for each state.
+## `wanted` maps a state to a clip suffix (or a list of them, first match wins).
+static func _setup_anims(root: Node3D, wanted: Dictionary) -> void:
+	var player := root.find_child("AnimationPlayer", true, false) as AnimationPlayer
+	if player == null:
+		return
+	var clips := {}
+	for state: String in wanted:
+		var options: Array = wanted[state] if wanted[state] is Array else [wanted[state]]
+		for suffix: String in options:
+			for clip in player.get_animation_list():
+				if clip.ends_with("|" + suffix) or clip == suffix:
+					clips[state] = clip
+					player.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
+					break
+			if clips.has(state):
+				break
+	root.set_meta("anim_player", player)
+	root.set_meta("anim_clips", clips)
+	set_state(root, "idle")
+
+
+## Switches a model to the "idle", "move" or "shoot" clip. Models without that
+## clip (tanks only have "move") hold their pose instead.
+static func set_state(root: Node3D, state: String) -> void:
+	if not root.has_meta("anim_player") or root.get_meta("anim_state", "") == state:
+		return
+	root.set_meta("anim_state", state)
+	var player := root.get_meta("anim_player") as AnimationPlayer
+	var clips: Dictionary = root.get_meta("anim_clips")
+	if clips.has(state):
+		player.play(clips[state], 0.15)
+	else:
+		player.pause()

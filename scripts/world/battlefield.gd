@@ -16,7 +16,7 @@ enum TimeOfDay { GOLDEN_HOUR, MIDDAY, NIGHT }
 var terrain: Terrain
 var environment: Environment
 var sun: DirectionalLight3D
-var time_of_day := TimeOfDay.GOLDEN_HOUR
+var time_of_day := TimeOfDay.MIDDAY
 var units: Array[Array] = [[], []]
 var props: Array[Dictionary] = []
 
@@ -37,6 +37,17 @@ var _pumpjacks: Array[Node3D] = []
 var _lamp: Node3D
 var _ships: Array[Dictionary] = []
 var _anim_t := 0.0
+
+
+const TERRAIN_TEXTURES := {
+	"sand_tex": "res://assets/textures/sand_01_diff_1k.jpg",
+	"sand_nor": "res://assets/textures/sand_01_nor_1k.jpg",
+	"rock_tex": "res://assets/textures/coast_sand_rocks_02_diff_1k.jpg",
+	"rock_nor": "res://assets/textures/coast_sand_rocks_02_nor_1k.jpg",
+}
+const ROCK_MODELS := ["rock_a", "rock_b", "rock_c", "rock_d", "rock_e"]
+const PALM_MODELS := ["palm_a", "palm_b", "palm_c"]
+const HOUSE_MODELS := ["building_a", "building_b", "building_c", "building_d"]
 
 
 func build(seed_value: int) -> void:
@@ -61,7 +72,7 @@ func build(seed_value: int) -> void:
 	_burned.albedo_color = Color(0.06, 0.055, 0.05)
 	_burned.roughness = 0.95
 	_burned.metallic = 0.3
-	set_time_of_day(TimeOfDay.GOLDEN_HOUR)
+	set_time_of_day(TimeOfDay.MIDDAY)
 	GameSettings.register_world(environment, sun)
 
 
@@ -169,20 +180,24 @@ func set_time_of_day(t: int) -> void:
 	var night := t == TimeOfDay.NIGHT
 	match t:
 		TimeOfDay.GOLDEN_HOUR:
-			sun.rotation_degrees = Vector3(-14.0, -62.0, 0.0)
-			sun.light_color = Color(1.0, 0.76, 0.52)
-			sun.light_energy = 1.7
-			_physical_sky.energy_multiplier = 1.0
-			environment.tonemap_exposure = 1.05
-			environment.volumetric_fog_albedo = Color(0.95, 0.82, 0.68)
-			environment.volumetric_fog_density = 0.014
-			environment.fog_light_color = Color(0.85, 0.68, 0.5)
-		TimeOfDay.MIDDAY:
-			sun.rotation_degrees = Vector3(-62.0, -30.0, 0.0)
-			sun.light_color = Color(1.0, 0.97, 0.92)
+			# Low warm sun, but high enough that the ground is lit rather than
+			# buried in long orange shadows.
+			sun.rotation_degrees = Vector3(-24.0, -62.0, 0.0)
+			sun.light_color = Color(1.0, 0.86, 0.68)
 			sun.light_energy = 2.0
 			_physical_sky.energy_multiplier = 1.0
-			environment.tonemap_exposure = 0.85
+			_physical_sky.turbidity = 5.0
+			environment.tonemap_exposure = 1.1
+			environment.volumetric_fog_albedo = Color(0.95, 0.86, 0.74)
+			environment.volumetric_fog_density = 0.008
+			environment.fog_light_color = Color(0.85, 0.74, 0.6)
+		TimeOfDay.MIDDAY:
+			sun.rotation_degrees = Vector3(-52.0, -35.0, 0.0)
+			sun.light_color = Color(1.0, 0.97, 0.92)
+			sun.light_energy = 1.9
+			_physical_sky.energy_multiplier = 1.0
+			_physical_sky.turbidity = 3.0
+			environment.tonemap_exposure = 0.82
 			environment.volumetric_fog_albedo = Color(0.95, 0.92, 0.86)
 			environment.volumetric_fog_density = 0.006
 			environment.fog_light_color = Color(0.75, 0.78, 0.82)
@@ -234,6 +249,21 @@ func _terrain_material(scorch: bool) -> ShaderMaterial:
 	m.set_shader_parameter("detail_noise", _noise_texture(11, 0.02, false))
 	m.set_shader_parameter("detail_normal", _noise_texture(12, 0.04, true))
 	m.set_shader_parameter("use_vertex_scorch", scorch)
+	# Photo-scanned sand and rock detail (Poly Haven, CC0) when the files are present.
+	var have_textures := true
+	for slot: String in TERRAIN_TEXTURES:
+		have_textures = have_textures and ResourceLoader.exists(TERRAIN_TEXTURES[slot])
+	if have_textures:
+		for slot: String in TERRAIN_TEXTURES:
+			var tex := load(TERRAIN_TEXTURES[slot]) as Texture2D
+			m.set_shader_parameter(slot, tex)
+			if slot.ends_with("_tex"):
+				# The shader divides by the average so textures add detail without shifting biome colours.
+				var img := tex.get_image()
+				img.decompress()
+				img.resize(1, 1, Image.INTERPOLATE_LANCZOS)
+				m.set_shader_parameter(slot.trim_suffix("_tex") + "_mean", img.get_pixel(0, 0).srgb_to_linear())
+		m.set_shader_parameter("use_textures", true)
 	return m
 
 
@@ -404,10 +434,17 @@ func _build_props() -> void:
 		var p := _random_land_point(45, 188, 4, 188, 0.6)
 		if p == Vector3.INF or not _clear_of_bases(p) or terrain.dune_at(p) > 0.3:
 			continue
+		var s := _rng.randf_range(1.2, 4.0)
+		var rock_file: String = ROCK_MODELS[i % ROCK_MODELS.size()]
+		if ModelLibrary.has(rock_file):
+			var rock := ModelLibrary.fitted(rock_file, s * 2.3, _rng.randf() * TAU)
+			rock.scale *= Vector3(_rng.randf_range(0.85, 1.2), _rng.randf_range(0.6, 1.0), 1.0)
+			rock.position = p + Vector3.DOWN * 0.15 * s
+			_add_prop(rock, "rock", s * 0.55, 600.0)
+			continue
 		var mi := MeshInstance3D.new()
 		mi.mesh = rock_meshes[i % 4]
 		mi.material_override = rock_mat
-		var s := _rng.randf_range(1.2, 4.0)
 		mi.scale = Vector3(s * _rng.randf_range(0.8, 1.4), s * _rng.randf_range(0.5, 1.0), s)
 		mi.rotation.y = _rng.randf() * TAU
 		mi.position = p + Vector3.DOWN * 0.2 * s
@@ -420,6 +457,14 @@ func _build_props() -> void:
 		# Palms gather along the coast and in the village oasis.
 		var p := _random_land_point(42, 80, 8, 188) if i < 35 else _random_land_point(80, 125, 78, 122)
 		if p == Vector3.INF or p.y > 6.0:
+			continue
+		var palm_file: String = PALM_MODELS[i % PALM_MODELS.size()]
+		if ModelLibrary.has(palm_file):
+			# The holder is wrapped so toppling (rotation.z on the prop) pivots at the base.
+			var palm := Node3D.new()
+			palm.add_child(ModelLibrary.fitted(palm_file, _rng.randf_range(6.0, 9.0), _rng.randf() * TAU, true))
+			palm.position = p
+			_add_prop(palm, "palm", 0.6, 60.0)
 			continue
 		var mi := MeshInstance3D.new()
 		mi.mesh = palms[i % 3]
@@ -434,7 +479,10 @@ func _build_props() -> void:
 		var d := _rng.randf_range(8.0, 15.0)
 		var p := Vector3(100 + cos(ang) * d, 0, 100 + sin(ang) * d)
 		p.y = terrain.height_at(p)
-		var house := _house(Vector3(_rng.randf_range(5, 8), _rng.randf_range(3.2, 6.5), _rng.randf_range(5, 8)))
+		var house_size := Vector3(_rng.randf_range(5, 8), _rng.randf_range(3.2, 6.5), _rng.randf_range(5, 8))
+		var house := _model_house(i, house_size)
+		if house == null:
+			house = _house(house_size)
 		house.position = p
 		house.rotation.y = ang + PI * 0.5
 		_add_prop(house, "building", 3.8, 500.0)
@@ -456,6 +504,13 @@ func _build_props() -> void:
 			var ang := TAU * i / 18.0 + 0.9
 			var p: Vector3 = base + Vector3(cos(ang), 0, sin(ang)) * 17.0
 			p.y = terrain.height_at(p)
+			if ModelLibrary.has("barrier"):
+				var barrier := ModelLibrary.fitted("barrier", 3.6)
+				barrier.scale.y *= 1.5
+				barrier.position = p
+				barrier.rotation.y = -ang + PI * 0.5
+				_add_prop(barrier, "wall", 1.7, 300.0)
+				continue
 			var wall := MeshInstance3D.new()
 			var bm := BoxMesh.new()
 			bm.size = Vector3(3.2, 3.4, 0.5)
@@ -528,6 +583,7 @@ func _build_landmarks() -> void:
 	var shrubs := MultiMeshInstance3D.new()
 	shrubs.name = "Shrubs"
 	shrubs.multimesh = mm
+	shrubs.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF # thousands of tiny casters for no visible gain
 	add_child(shrubs)
 
 	# Sandstone pillars and mushroom rocks rising out of the dunes.
@@ -622,6 +678,33 @@ func _animate_landmarks(delta: float) -> void:
 		var ph: float = s["phase"]
 		n.position.y = sin(_anim_t * 0.9 + ph) * 0.12 - (0.0 if speed == 0.0 else 3.0)
 		n.rotation.z = sin(_anim_t * 0.7 + ph) * 0.02
+
+
+## Village house from the Kenney city kit, repainted in sun-bleached plaster.
+func _model_house(index: int, size: Vector3) -> Node3D:
+	var file: String = HOUSE_MODELS[index % HOUSE_MODELS.size()]
+	if not ModelLibrary.has(file):
+		return null
+	var root := Node3D.new()
+	var body := ModelLibrary.fitted(file, maxf(size.x, size.z) * 1.15)
+	var plaster := Color(0.82, 0.74, 0.6).darkened(_rng.randf_range(0.0, 0.18))
+	ModelLibrary.recolor(body, {
+		"_defaultMat": plaster,
+		"border": plaster.darkened(0.25),
+		"roof": Color(0.55, 0.36, 0.26),
+		"door": Color(0.25, 0.2, 0.16),
+		"window": Color(0.12, 0.16, 0.2),
+	})
+	root.add_child(body)
+	var light := OmniLight3D.new()
+	light.light_color = Color(1.0, 0.72, 0.4)
+	light.light_energy = 2.5
+	light.omni_range = 9.0
+	light.position = Vector3(0, 2.4, -size.z * 0.5 - 1.0)
+	light.visible = false
+	light.add_to_group("night_lights")
+	root.add_child(light)
+	return root
 
 
 func _house(size: Vector3) -> Node3D:
@@ -750,9 +833,8 @@ func _destroy_prop(prop: Dictionary) -> void:
 
 func _rubble(node: Node3D) -> void:
 	# Collapse: the building sinks and leaves a low pile of broken slabs.
-	for c in node.get_children():
-		if c is MeshInstance3D:
-			(c as MeshInstance3D).material_override = _burned
+	for c in node.find_children("*", "MeshInstance3D", true, false):
+		(c as MeshInstance3D).material_override = _burned
 	var tw := create_tween()
 	tw.tween_property(node, "scale:y", 0.22, 1.2).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_BOUNCE)
 	VFX.burning(node.global_position + Vector3.UP, 15.0, 1.5)

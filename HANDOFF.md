@@ -150,6 +150,21 @@ docs/                    DESIGN.md, DECISIONS.md, SOURCES.md
 tools/                   setup and check scripts
 ```
 
+## Art pass status (2026-10-09, from the Mac)
+
+- Real CC0 models and textures are in `assets/` and credited in `docs/SOURCES.md`.
+  `scripts/world/model_library.gd` loads and fits them; `scripts/units/unit_models.gd`
+  has one `_asset_*` builder per unit with hand-measured scales at the top of that section.
+- Judge units with F8 (showcase) or `godot --path . -- --showcase --showcase-shot=/tmp/units`
+  (a folder saves one close-up per unit; a `.png` path saves the overview).
+- The models are low-poly and stylised (the best CC0 military set available); the
+  Ranger is chunkier than the IRGC rifleman, whose rifle sits loosely in the hand.
+- Frame rate on the M4 Pro at High is about 40 fps since the battlefield grew. It is
+  draw-call bound: merge static props into MultiMeshes and give trees and props a
+  visibility range before adding more scenery.
+- An unattended run with the cursor parked at a screen edge scrolls the camera away;
+  the benchmark switches edge panning off for that reason.
+
 ## Next steps
 
 1. **Art pass (top priority).** Real CC0 models and PBR textures, brighter

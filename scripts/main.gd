@@ -18,9 +18,14 @@ var hud: HUD
 var economy: Economy
 var mission: Node
 var _overlay_layer: CanvasLayer
+static var _showcase_opened := false
 
 
 func _ready() -> void:
+	if "--showcase" in OS.get_cmdline_user_args() and not _showcase_opened:
+		_showcase_opened = true
+		get_tree().change_scene_to_file.call_deferred("res://scenes/unit_showcase.tscn")
+		return
 	battlefield = Battlefield.new()
 	battlefield.name = "Battlefield"
 	add_child(battlefield)
@@ -98,3 +103,5 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	var k := event as InputEventKey
 	if k and k.pressed and k.physical_keycode == KEY_F6:
 		get_tree().reload_current_scene()
+	elif k and k.pressed and k.physical_keycode == KEY_F8:
+		get_tree().change_scene_to_file("res://scenes/unit_showcase.tscn")

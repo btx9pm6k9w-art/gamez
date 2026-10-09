@@ -5,6 +5,31 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-09
 
+### Art pass 1: real models, terrain textures, daylight (from the Mac)
+- **Units use real CC0 models** instead of generated boxes: Quaternius tanks with
+  separate turrets and animated tracks, rigged and animated soldiers (idle, run,
+  shoot) with weapons, a walking mech for the K9, an armoured pickup with a turret
+  for the laser truck, a pickup carrying drones, a delta-wing drone, a patrol boat
+  and a rigid inflatable. Each faction has its own tank and infantry model.
+  `UnitModels.build()` falls back to the old primitives if a file is missing and
+  keeps the `Turret`, `Muzzle`, `Engine` and `Wake` pivots; animation is driven by
+  `UnitModels.set_state(model, "idle" | "move" | "shoot")`.
+- **Props**: palms, rocks, village houses (Kenney, repainted as plaster) and
+  striped concrete barriers come from models too.
+- **Terrain** blends Poly Haven sand and rock scans (1K) into the biome colours.
+- **Lighting**: the battle starts at midday under a clear sky; golden hour is
+  brighter and less orange. Press T to cycle.
+- **Unit showcase** (`scenes/unit_showcase.tscn`): every unit on a turntable. F8 in
+  game, or `-- --showcase`.
+- New `scripts/world/model_library.gd`; assets and licences are listed in
+  `docs/SOURCES.md` (25 models and 4 textures, all CC0, about 10 MB).
+- Fixed a parse error in `scripts/ui/hud.gd` from the RTS-controls commit (a loop
+  variable named `k` shadowed another `k`) that stopped the game from loading.
+- Performance: lower presets use two shadow splits and shrubs no longer cast
+  shadows. **Known regression**: with the larger battlefield the M4 Pro runs High
+  at about 40 fps (Low about 80), with or without the new models; the scene is now
+  limited by draw calls (about 1,600 to 2,400 a frame), not by pixels.
+
 ### Strategy: counter system, anti-tank teams, multi-direction attacks
 - Counter system: every unit has an armour class (infantry, light, heavy,
   naval, air) and every weapon a multiplier against it (`UnitDefs.VS_ARMOR`).

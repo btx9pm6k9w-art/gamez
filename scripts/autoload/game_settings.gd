@@ -109,8 +109,11 @@ func apply_preset(p: int) -> void:
 		[RenderingServer.SHADOW_QUALITY_HARD, RenderingServer.SHADOW_QUALITY_SOFT_VERY_LOW,
 		RenderingServer.SHADOW_QUALITY_SOFT_LOW, RenderingServer.SHADOW_QUALITY_SOFT_MEDIUM][preset])
 	if _sun:
-		_sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL if preset == Preset.LOW else DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
-		_sun.directional_shadow_max_distance = [90.0, 130.0, 170.0, 220.0][preset]
+		# Every shadow split redraws the whole battlefield (trees, shrubs, props),
+		# so only Ultra pays for four of them.
+		_sun.directional_shadow_mode = [DirectionalLight3D.SHADOW_ORTHOGONAL, DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS,
+			DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS, DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS][preset]
+		_sun.directional_shadow_max_distance = [90.0, 110.0, 130.0, 200.0][preset]
 
 	# Screen-space effects and global illumination.
 	RenderingServer.environment_set_ssao_quality(

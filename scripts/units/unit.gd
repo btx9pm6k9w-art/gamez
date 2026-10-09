@@ -456,6 +456,7 @@ func _process(delta: float) -> void:
 
 
 func _animate(delta: float, moving: bool, speed: float) -> void:
+	UnitModels.set_state(model, "move" if moving else ("shoot" if is_instance_valid(target) else "idle"))
 	if legs == null:
 		return
 	_anim_t += delta * (speed * 2.2 if moving else 0.0)
@@ -636,11 +637,13 @@ func _die() -> void:
 		# Ammunition cooks off a moment later.
 		var p := global_position + Vector3.UP * 1.5
 		get_tree().create_timer(randf_range(0.5, 0.9)).timeout.connect(func() -> void: VFX.explosion(p, 1.3, VFX.Surface.AIR))
+		UnitModels.set_state(model, "wreck")
 		battlefield.leave_wreck(model, global_transform)
 		queue_free()
 	else:
 		# Infantry and robots fall over and fade.
 		VFX.impact(aim_point())
+		UnitModels.set_state(model, "dead")
 		var tw := create_tween()
 		tw.tween_property(model, "rotation:x", -PI * 0.5, 0.35).set_ease(Tween.EASE_IN)
 		tw.tween_interval(2.0)

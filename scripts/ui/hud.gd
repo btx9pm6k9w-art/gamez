@@ -363,8 +363,8 @@ func _draw_minimap() -> void:
 	var age := Time.get_ticks_msec() / 1000.0 - selection.alert_time
 	if selection.alert_pos != Vector3.INF and age < 4.0:
 		var ap := Vector2(selection.alert_pos.x, selection.alert_pos.z) / Battlefield.MAP_SIZE * s
-		for k in 2:
-			var ph := fmod(age * 1.2 + k * 0.5, 1.0)
+		for ring in 2:
+			var ph := fmod(age * 1.2 + ring * 0.5, 1.0)
 			_minimap.draw_arc(ap, 4.0 + ph * 18.0, 0.0, TAU, 24, Color(WARN, 1.0 - ph), 1.5)
 	_minimap.draw_polyline(PackedVector2Array(corners), Color(1, 1, 1, 0.8), 1.2)
 	_minimap.draw_rect(Rect2(Vector2.ZERO, s), Color(ACCENT, 0.5), false, 1.0)

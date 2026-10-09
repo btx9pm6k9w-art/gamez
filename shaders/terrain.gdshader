@@ -16,6 +16,13 @@ uniform vec3 gravel_color : source_color = vec3(0.55, 0.52, 0.47);
 uniform vec3 salt_color : source_color = vec3(0.86, 0.84, 0.78);
 uniform sampler2D detail_noise : filter_linear_mipmap_anisotropic, repeat_enable;
 uniform sampler2D detail_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform bool use_textures = false;
+uniform sampler2D sand_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D sand_nor : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D rock_tex : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform sampler2D rock_nor : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
+uniform vec3 sand_mean = vec3(0.5);
+uniform vec3 rock_mean = vec3(0.5);
 uniform float water_level = 0.0;
 uniform bool use_vertex_scorch = true;
 
@@ -75,10 +82,24 @@ void fragment() {
 	float scorch = use_vertex_scorch ? clamp(COLOR.r, 0.0, 1.0) : 0.0;
 	col = mix(col, scorch_color * (0.6 + 0.8 * n_fine), scorch * 0.92);
 
+	float stony = clamp(max(rock, gravel * 0.8), 0.0, 1.0);
+	if (use_textures) {
+		// Two scales of each scan hide the tiling from the RTS camera.
+		vec3 st = triplanar(sand_tex, world_pos, world_normal, 0.21).rgb * 0.6
+			+ triplanar(sand_tex, world_pos, world_normal, 0.047).rgb * 0.4;
+		vec3 rt = triplanar(rock_tex, world_pos, world_normal, 0.11).rgb * 0.6
+			+ triplanar(rock_tex, world_pos, world_normal, 0.031).rgb * 0.4;
+		vec3 detail = mix(st / max(sand_mean, vec3(0.02)), rt / max(rock_mean, vec3(0.02)), stony);
+		col *= mix(vec3(1.0), clamp(detail, 0.0, 1.5), (1.0 - scorch) * (1.0 - wet * 0.6));
+	}
 	ALBEDO = col;
 	ROUGHNESS = mix(mix(mix(0.93, 0.78, rock), 0.7, salt), 0.32, wet);
 	SPECULAR = 0.45;
 	vec3 nm = triplanar(detail_normal, world_pos, world_normal, 0.25).rgb;
+	if (use_textures) {
+		nm = mix(triplanar(sand_nor, world_pos, world_normal, 0.21).rgb,
+			triplanar(rock_nor, world_pos, world_normal, 0.11).rgb, stony);
+	}
 	NORMAL_MAP = nm;
 	NORMAL_MAP_DEPTH = mix(0.5, 1.6, rock) + scorch * 0.6 + gravel * 1.2 - dune * 0.3;
 	AO = mix(1.0, 0.7, scorch);
