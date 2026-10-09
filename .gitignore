@@ -1,0 +1,12 @@
+# Godot generated
+.godot/
+*.translation
+export_presets.cfg
+# Builds
+/build/
+*.app
+*.dmg
+*.exe
+*.pck
+# OS
+.DS_Store
