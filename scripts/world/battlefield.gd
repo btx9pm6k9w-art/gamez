@@ -686,7 +686,7 @@ func find_target(seeker: Unit, radius: float) -> Unit:
 ## attacker's team (friendly units are spared); -1 hurts everyone.
 func blast(pos: Vector3, damage: float, splash: float, crater: float, team: int, fx_size: float) -> void:
 	if fx_size > 0.0:
-		VFX.explosion(pos, fx_size)
+		VFX.explosion(pos, fx_size, VFX.Surface.GROUND if terrain.is_land(pos) else VFX.Surface.WATER)
 	if crater > 0.0 and terrain.is_land(pos):
 		terrain.deform(pos, crater, crater * 0.45)
 		VFX.scorch(pos, crater * 1.4)

@@ -2,7 +2,7 @@ class_name SelectionManager
 extends Node
 ## Mouse and keyboard command layer: click and box selection, double-click
 ## select-by-type, control groups, move / attack / attack-move / stop orders,
-## formation spreading and the commander's Precision Strike.
+## formation spreading and the commander's Precision Strike and Airstrike.
 
 signal selection_changed(units: Array[Unit])
 signal strike_ready_changed(ready: bool)
@@ -10,6 +10,7 @@ signal strike_ready_changed(ready: bool)
 const DRAG_THRESHOLD := 6.0
 const STRIKE_COOLDOWN := 25.0
 const STRIKE_DELAY := 3.0
+const AIRSTRIKE_COOLDOWN := 40.0
 
 var battlefield: Battlefield
 var rig: RTSCamera
@@ -20,6 +21,8 @@ var dragging := false
 var attack_move_armed := false
 var strike_armed := false
 var strike_cooldown := 0.0
+var airstrike_armed := false
+var airstrike_cooldown := 0.0
 var hovered: Unit
 
 var _last_click_time := 0.0
@@ -34,6 +37,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			if mb.pressed:
 				if strike_armed:
 					_fire_strike(mb.position)
+					return
+				if airstrike_armed:
+					_call_airstrike(mb.position)
 					return
 				if attack_move_armed:
 					_issue_ground_order(mb.position, true)
@@ -50,6 +56,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
 			attack_move_armed = false
 			strike_armed = false
+			airstrike_armed = false
 			var u := _unit_at(mb.position)
 			if u != null and u.team != Battlefield.COALITION:
 				for s in selected:
@@ -72,8 +79,18 @@ func _unhandled_input(event: InputEvent) -> void:
 			attack_move_armed = not selected.is_empty()
 		elif event.is_action_pressed("ability_strike"):
 			strike_armed = strike_cooldown <= 0.0
+			airstrike_armed = false
 			if not strike_armed:
 				Audio.play_ui("ui_error")
+		elif event.is_action_pressed("ability_airstrike"):
+			airstrike_armed = airstrike_cooldown <= 0.0
+			strike_armed = false
+			if not airstrike_armed:
+				Audio.play_ui("ui_error")
+		elif event.is_action_pressed("vfx_showcase"):
+			var f := rig.get_focus()
+			f.y = battlefield.terrain.height_at(f)
+			Airstrike.launch(battlefield, f, rig.camera.global_basis.x)
 		elif event.is_action_pressed("select_all_army"):
 			_set_selection(_own_units())
 		elif event.is_action_pressed("cycle_time_of_day"):
@@ -81,6 +98,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.is_action_pressed("cancel"):
 			attack_move_armed = false
 			strike_armed = false
+			airstrike_armed = false
 
 
 func _process(delta: float) -> void:
@@ -88,6 +106,7 @@ func _process(delta: float) -> void:
 		strike_cooldown = maxf(strike_cooldown - delta, 0.0)
 		if strike_cooldown == 0.0:
 			strike_ready_changed.emit(true)
+	airstrike_cooldown = maxf(airstrike_cooldown - delta, 0.0)
 	# Drop dead units from the selection and groups.
 	var alive := selected.filter(func(u: Unit) -> bool: return is_instance_valid(u) and u.is_alive())
 	if alive.size() != selected.size():
@@ -272,7 +291,7 @@ func _fire_strike(screen: Vector2) -> void:
 	cap.material = m
 	body.mesh = cap
 	missile.add_child(body)
-	var trail := VFX.make_trail()
+	var trail := VFX.make_trail(1.4)
 	trail.position = Vector3.DOWN * 1.6
 	missile.add_child(trail)
 	battlefield.add_child(missile)
@@ -291,3 +310,14 @@ func _fire_strike(screen: Vector2) -> void:
 		VFX.burning(p, 12.0, 1.5)
 		trail.emitting = false
 		missile.queue_free())
+
+
+## Commander ability: two jets bomb a line through the clicked point, flying
+## across the screen so the whole run is in view.
+func _call_airstrike(screen: Vector2) -> void:
+	airstrike_armed = false
+	var p := ground_point(screen)
+	if p == Vector3.INF:
+		return
+	airstrike_cooldown = AIRSTRIKE_COOLDOWN
+	Airstrike.launch(battlefield, p, rig.camera.global_basis.x)

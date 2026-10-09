@@ -8,7 +8,7 @@ extends Node
 ## res://audio/ambience/coast.ogg into the project.
 
 const SFX_NAMES := ["explosion_small", "explosion_big", "cannon", "rifle", "laser", "launch",
-	"drone_engine", "engine", "missile_incoming", "ui_select", "ui_confirm", "ui_error", "alert"]
+	"drone_engine", "engine", "missile_incoming", "jet", "bomb_whistle", "fire", "ui_select", "ui_confirm", "ui_error", "alert"]
 const STEMS := ["calm", "tension", "combat"]
 
 var intensity := 0.0
@@ -82,6 +82,9 @@ func _render() -> void:
 	d["missile_incoming"] = [SoundSynth.missile_whoosh()]
 	d["drone_engine"] = [SoundSynth.drone_engine()]
 	d["engine"] = [SoundSynth.engine_rumble()]
+	d["jet"] = [SoundSynth.jet()]
+	d["bomb_whistle"] = [SoundSynth.bomb_whistle()]
+	d["fire"] = [SoundSynth.fire()]
 	d["ui_select"] = [SoundSynth.blip([1320.0], 0.06)]
 	d["ui_confirm"] = [SoundSynth.blip([990.0, 1480.0], 0.05)]
 	d["ui_error"] = [SoundSynth.blip([300.0, 220.0], 0.08)]
@@ -116,7 +119,7 @@ func _overrides(key: String, fallback: Array) -> Array:
 	if found.is_empty():
 		return fallback
 	for s in found:
-		if s is AudioStreamOggVorbis and (key.begins_with("music_") or key == "ambience" or key.ends_with("engine")):
+		if s is AudioStreamOggVorbis and (key.begins_with("music_") or key == "ambience" or key.ends_with("engine") or key in ["jet", "fire"]):
 			(s as AudioStreamOggVorbis).loop = true
 	return found
 
@@ -176,15 +179,19 @@ func play_ui(key: String) -> void:
 
 
 ## Looping positional sound that follows a node (engines, drones).
-func attach_loop(node: Node3D, key: String, volume_db := 0.0) -> AudioStreamPlayer3D:
+## Also used for one-shots that must travel with a moving node (bomb whistle);
+## doppler adds the pitch drop of fast passes (jets).
+func attach_loop(node: Node3D, key: String, volume_db := 0.0, unit_size := 22.0, doppler := false) -> AudioStreamPlayer3D:
 	if not is_ready:
 		return null
 	var p := AudioStreamPlayer3D.new()
 	p.stream = _pick(key)
 	p.bus = "SFX"
 	p.volume_db = volume_db
-	p.unit_size = 22.0
-	p.max_distance = 300.0
+	p.unit_size = unit_size
+	p.max_distance = maxf(300.0, unit_size * 12.0)
+	if doppler:
+		p.doppler_tracking = AudioStreamPlayer3D.DOPPLER_TRACKING_IDLE_STEP
 	p.pitch_scale = randf_range(0.92, 1.08)
 	node.add_child(p)
 	p.play()

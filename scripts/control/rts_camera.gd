@@ -26,6 +26,7 @@ func _ready() -> void:
 	camera.fov = 38.0
 	camera.near = 0.5
 	camera.far = 1500.0
+	camera.doppler_tracking = Camera3D.DOPPLER_TRACKING_IDLE_STEP # jets pitch-drop as they pass
 	_attrs = CameraAttributesPractical.new()
 	_attrs.dof_blur_far_enabled = true
 	_attrs.dof_blur_amount = 0.06

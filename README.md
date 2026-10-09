@@ -31,7 +31,14 @@ From a terminal on macOS:
   loitering munitions fly across the map and can be shot down.
 - Orders: click/box/double-click selection, move with formation spreading,
   attack, attack-move, stop, control groups, minimap.
-- Commander ability: **Precision Strike** (hypersonic missile, 3 s warning, big crater).
+- Commander abilities: **Precision Strike** (hypersonic missile, 3 s warning, big
+  crater) and **Airstrike** (two jets ripple six bombs along a line).
+- **Film-style explosions** built in layers: light flash, boiling fireball (a
+  mushroom cloud for the biggest), flame licks, fire-lit smoke, streak sparks,
+  debris trailing smoke, dust skirt, dirt plume, shockwave and heat-haze
+  refraction, embers, lingering crater fires and a volumetric smoke pall. Water
+  hits throw a spray column. Big blasts punch the exposure and shake the camera.
+  Press **F7** for a free airstrike at the camera to see it all.
 - AI: defenders counter-attack, three reinforcement waves, win/lose conditions.
 - Time of day: golden hour, midday and night (vehicle headlights, lit windows).
 
@@ -83,6 +90,8 @@ Presets switch live with **F1–F4**; the game picks one from your GPU on first 
 | Tab | Select the whole army |
 | Ctrl/Cmd + 1–9, 1–9 | Set / recall control group (press twice to jump) |
 | F, then click | Precision Strike |
+| G, then click | Airstrike (bomb line runs across the screen) |
+| F7 | VFX showcase: free airstrike at the camera |
 | WASD, screen edges, middle drag, two-finger swipe | Pan |
 | Wheel, pinch | Zoom |
 | Q / E | Rotate camera |
@@ -95,7 +104,8 @@ Presets switch live with **F1–F4**; the game picks one from your GPU on first 
 ```
 project.godot            engine and rendering settings
 scenes/main.tscn         entry scene (everything else is built in code)
-scripts/autoload/        GameSettings (quality presets, input), VFX (effects)
+scripts/autoload/        GameSettings (quality presets, input), VFX (effects), Audio
+scripts/abilities/       Airstrike (jets, bombs)
 scripts/world/           Battlefield (lighting, props, navigation, damage), Terrain
 scripts/units/           Unit logic, procedural unit models, projectiles
 scripts/control/         RTS camera, selection and orders
@@ -103,6 +113,7 @@ scripts/ai/              Enemy AI
 scripts/ui/              HUD and minimap
 scripts/data/            Unit stats and display names
 shaders/                 Terrain, water and post-process shaders
+shaders/vfx/             Smoke, fire, fireball and heat-haze/shockwave shaders
 ```
 
 The repo has no binary assets: meshes, textures and effects are generated at

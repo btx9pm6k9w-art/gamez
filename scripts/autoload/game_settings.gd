@@ -171,6 +171,8 @@ func _register_input_actions() -> void:
 		"order_attack_move": [KEY_R],
 		"order_stop": [KEY_X],
 		"ability_strike": [KEY_F],
+		"ability_airstrike": [KEY_G],
+		"vfx_showcase": [KEY_F7],
 		"cycle_time_of_day": [KEY_T],
 		"select_all_army": [KEY_TAB],
 		"quality_low": [KEY_F1],

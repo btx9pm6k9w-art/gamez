@@ -63,8 +63,8 @@ func _ready() -> void:
 	var strike_panel := _panel(Control.PRESET_CENTER_BOTTOM)
 	strike_panel.offset_bottom = -16
 	strike_panel.offset_top = -64
-	strike_panel.offset_left = -170
-	strike_panel.offset_right = 170
+	strike_panel.offset_left = -240
+	strike_panel.offset_right = 240
 	_strike = _label(16)
 	_strike.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	strike_panel.add_child(_strike)
@@ -89,6 +89,7 @@ func _ready() -> void:
 		"R then click        attack-move     X  stop     TAB  select army",
 		"Ctrl/Cmd+1..9       set group       1..9  recall (twice = jump)",
 		"F then click        Precision Strike (hypersonic, makes a crater)",
+		"G then click        Airstrike (two jets bomb a line)   F7  VFX showcase",
 		"WASD / edges / pinch / two-finger   pan & zoom     Q E  rotate",
 		"T  time of day      F1-F4  graphics preset   F5  HDR   F11  fullscreen",
 		"H  hide this help",
@@ -114,9 +115,20 @@ func setup(bf: Battlefield, sel: SelectionManager, camera_rig: RTSCamera, p_ai: 
 	rig = camera_rig
 	ai = p_ai
 	_minimap_tex = ImageTexture.create_from_image(bf.terrain.build_minimap_image())
+	VFX.flash_requested.connect(_on_flash)
 	ai.wave_incoming.connect(func(i: int, total: int) -> void: show_message("Enemy wave %d of %d incoming from the mountains" % [i, total], WARN))
 	GameSettings.preset_changed.connect(_on_preset_changed)
 	_on_preset_changed(GameSettings.preset)
+
+
+func _on_flash(strength: float, origin: Vector3) -> void:
+	var cam := rig.camera
+	if not _post.visible or cam.is_position_behind(origin) or not cam.is_position_in_frustum(origin):
+		return
+	var m := _post.material as ShaderMaterial
+	var tw := create_tween()
+	tw.tween_method(func(v: float) -> void: m.set_shader_parameter("flash", v), strength, 0.0, 0.25 + strength * 0.3) \
+		.set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_EXPO)
 
 
 func _on_preset_changed(p: int) -> void:
@@ -187,12 +199,15 @@ func _process(delta: float) -> void:
 	if selection.strike_armed:
 		_strike.text = "PRECISION STRIKE: click a target"
 		_strike.add_theme_color_override("font_color", WARN)
-	elif selection.strike_cooldown > 0.0:
-		_strike.text = "Precision Strike  %ds" % ceili(selection.strike_cooldown)
-		_strike.add_theme_color_override("font_color", Color(0.6, 0.66, 0.7))
+	elif selection.airstrike_armed:
+		_strike.text = "AIRSTRIKE: click the centre of the bomb line"
+		_strike.add_theme_color_override("font_color", WARN)
 	else:
-		_strike.text = "Precision Strike READY  [F]"
-		_strike.add_theme_color_override("font_color", ACCENT)
+		var a := "Strike %ds" % ceili(selection.strike_cooldown) if selection.strike_cooldown > 0.0 else "Strike READY [F]"
+		var b := "Airstrike %ds" % ceili(selection.airstrike_cooldown) if selection.airstrike_cooldown > 0.0 else "Airstrike READY [G]"
+		_strike.text = "%s      %s" % [a, b]
+		var any_ready := selection.strike_cooldown <= 0.0 or selection.airstrike_cooldown <= 0.0
+		_strike.add_theme_color_override("font_color", ACCENT if any_ready else Color(0.6, 0.66, 0.7))
 
 	if _message_time > 0.0:
 		_message_time -= delta
@@ -228,9 +243,9 @@ func _draw_overlay() -> void:
 		if rect.size.length() > SelectionManager.DRAG_THRESHOLD:
 			_overlay.draw_rect(rect, Color(ACCENT, 0.12))
 			_overlay.draw_rect(rect, Color(ACCENT, 0.9), false, 1.5)
-	if selection.strike_armed or selection.attack_move_armed:
+	if selection.strike_armed or selection.airstrike_armed or selection.attack_move_armed:
 		var m := _overlay.get_local_mouse_position()
-		var c := WARN if selection.strike_armed else Color(1.0, 0.8, 0.3)
+		var c := WARN if selection.strike_armed or selection.airstrike_armed else Color(1.0, 0.8, 0.3)
 		_overlay.draw_arc(m, 16, 0, TAU, 32, c, 2.0)
 		_overlay.draw_line(m - Vector2(24, 0), m + Vector2(24, 0), c, 1.5)
 		_overlay.draw_line(m - Vector2(0, 24), m + Vector2(0, 24), c, 1.5)

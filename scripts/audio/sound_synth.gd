@@ -222,6 +222,64 @@ static func missile_whoosh() -> AudioStreamWAV:
 	return to_wav(out, RATE)
 
 
+## Fighter jet pass: broadband roar, low rumble and a turbine whine. Looped;
+## the 3D player's doppler tracking supplies the pitch drop as it passes.
+static func jet() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 31
+	var roar := _noise(3.0, 0.0, rng)
+	_lowpass(roar, 2600.0, 2600.0)
+	var out := _buffer(3.0)
+	var phase := 0.0
+	var whine := 0.0
+	for i in out.size():
+		var t := float(i) / RATE
+		phase += TAU * (48.0 + sin(TAU * t * 0.7) * 3.0) / RATE
+		whine += TAU * (3150.0 + sin(TAU * t * 1.3) * 40.0) / RATE
+		out[i] = roar[i] * 1.2 + sin(phase) * 0.35 + sin(whine) * 0.05
+	_crossfade_loop(out, int(0.25 * RATE))
+	return to_wav(out, RATE, true)
+
+
+## Falling bomb: a descending whistle that swells as it nears the ground.
+static func bomb_whistle() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 37
+	var dur := 1.7
+	var out := _buffer(dur)
+	var phase := 0.0
+	for i in out.size():
+		var t := float(i) / RATE
+		var f := lerpf(1900.0, 650.0, pow(t / dur, 0.8)) + sin(TAU * t * 7.0) * 12.0
+		phase += TAU * f / RATE
+		var env := pow(t / dur, 1.5) * (1.0 - smoothstep(dur - 0.04, dur, t))
+		out[i] = (sin(phase) * 0.8 + rng.randf_range(-0.25, 0.25)) * env
+	return to_wav(out, RATE)
+
+
+## Burning wreck or crater: crackles and pops over a low roar of flame.
+static func fire() -> AudioStreamWAV:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 41
+	var out := _noise(4.0, 0.0, rng)
+	_lowpass(out, 380.0, 380.0)
+	for i in out.size():
+		out[i] *= 0.9 + 0.3 * sin(TAU * float(i) / RATE * 0.8)
+	var pops := _buffer(4.0)
+	var k := 0
+	while k < pops.size():
+		var amp := rng.randf_range(0.15, 1.0)
+		var burst := rng.randi_range(30, 260)
+		for j in burst:
+			if k + j < pops.size():
+				pops[k + j] += rng.randf_range(-1.0, 1.0) * amp * exp(-float(j) / (burst * 0.25))
+		k += int(RATE / rng.randf_range(6.0, 30.0))
+	_highpass(pops, 1200.0)
+	_mix(out, pops, 0.7)
+	_crossfade_loop(out, int(0.2 * RATE))
+	return to_wav(out, RATE, true)
+
+
 static func blip(freqs: Array, note_len: float) -> AudioStreamWAV:
 	var out := _buffer(note_len * freqs.size() + 0.05)
 	for n in freqs.size():

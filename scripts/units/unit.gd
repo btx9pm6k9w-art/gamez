@@ -322,7 +322,7 @@ func _fire() -> void:
 	var aim := target.aim_point()
 	match def["weapon"]:
 		"cannon":
-			VFX.muzzle_flash(from, 1.6)
+			VFX.muzzle_flash(from, 1.6, aim - from)
 			if turret:
 				var tw := create_tween()
 				tw.tween_property(turret, "position:z", turret.position.z + 0.25, 0.05)
@@ -331,7 +331,7 @@ func _fire() -> void:
 			Projectile.launch(get_parent(), from, aim + miss, 110.0, 0.02,
 				Callable(battlefield, "blast").bind(float(def["damage"]), float(def["splash"]), float(def["crater"]), team, 0.9))
 		"rifle":
-			VFX.muzzle_flash(from, 0.35)
+			VFX.muzzle_flash(from, 0.35, aim - from)
 			var hit := randf() < 0.8
 			var end := aim + (Vector3.ZERO if hit else Vector3(randf_range(-1.5, 1.5), randf_range(-0.5, 1.0), randf_range(-1.5, 1.5)))
 			VFX.tracer(from, end)
@@ -342,7 +342,7 @@ func _fire() -> void:
 			VFX.laser(from, aim)
 			target.take_damage(def["damage"], team)
 		"drone_launch":
-			VFX.muzzle_flash(from, 1.0)
+			VFX.muzzle_flash(from, 1.0, Vector3.UP)
 			var drone: Unit = battlefield.spawn_unit("shahed", team, from)
 			drone.order_strike(target.global_position + Vector3(randf_range(-3, 3), 0, randf_range(-3, 3)))
 
@@ -394,7 +394,7 @@ func _die() -> void:
 	selected = false
 	died.emit(self)
 	if is_air:
-		VFX.explosion(global_position, 0.8)
+		VFX.explosion(global_position, 1.2, VFX.Surface.AIR)
 		if _trail:
 			_detach_trail()
 		queue_free()
@@ -404,6 +404,9 @@ func _die() -> void:
 	var heavy: bool = def["radius"] > 1.0
 	if heavy:
 		VFX.explosion(global_position + Vector3.UP, 2.2)
+		# Ammunition cooks off a moment later.
+		var p := global_position + Vector3.UP * 1.5
+		get_tree().create_timer(randf_range(0.5, 0.9)).timeout.connect(func() -> void: VFX.explosion(p, 1.3, VFX.Surface.AIR))
 		battlefield.leave_wreck(model, global_transform)
 		queue_free()
 	else:
