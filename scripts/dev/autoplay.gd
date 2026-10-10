@@ -26,6 +26,8 @@ func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--autoplay-speed="):
 			speed = float(arg.trim_prefix("--autoplay-speed="))
+		elif arg == "--autoplay-strikes":
+			use_strikes = true
 		elif arg.begins_with("--autoplay-max="):
 			max_game_time = float(arg.trim_prefix("--autoplay-max="))
 	_run.call_deferred()
@@ -122,6 +124,60 @@ func _command() -> void:
 		pass
 
 
+## Finds the enemy ground cluster with most neighbours within 9 m that is seen,
+## and at least 16 m from every own unit (the blast hurts everyone).
+func _best_cluster(min_size: int) -> Vector3:
+	var best := Vector3.INF
+	var best_n := min_size - 1
+	var foes := _ground(Battlefield.IRAN)
+	var own := _ground(Battlefield.COALITION)
+	for a in foes:
+		if not a.visible:
+			continue
+		var n := 0
+		for b in foes:
+			if b.visible and a.global_position.distance_to(b.global_position) < 9.0:
+				n += 1
+		if n <= best_n:
+			continue
+		var safe := true
+		for o in own:
+			if o.global_position.distance_to(a.global_position) < 16.0:
+				safe = false
+				break
+		if safe:
+			best_n = n
+			best = a.global_position
+	return best
+
+
+## Calls the commander powers the way a player would: look at the target, then
+## click it. The camera is moved back to the army afterwards.
+func _powers() -> void:
+	var sel = main.selection
+	var eco = main.economy
+	var rig = main.rig
+	var want_airstrike: bool = sel.airstrike_cooldown <= 0.0 and eco.credits >= float(sel.AIRSTRIKE_COST)
+	var want_strike: bool = sel.strike_cooldown <= 0.0 and eco.credits >= float(sel.STRIKE_COST)
+	if not (want_airstrike or want_strike):
+		return
+	var spot := _best_cluster(3)
+	if spot == Vector3.INF:
+		return
+	var home: Vector3 = rig.get_focus()
+	rig.focus_on(spot)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var screen: Vector2 = rig.camera.unproject_position(spot)
+	if want_airstrike:
+		sel._call_airstrike(screen)
+		_airstrikes_fired += 1
+	elif want_strike:
+		sel._fire_strike(screen)
+		_strikes_fired += 1
+	rig.focus_on(home)
+
+
 func _status() -> void:
 	var m = main.mission
 	var eco = main.economy
@@ -143,6 +199,9 @@ func _status() -> void:
 		m._pier_threat, m.kills, m.losses, " ".join(states)])
 
 
+var use_strikes := false
+var _strikes_fired := 0
+var _airstrikes_fired := 0
 var _stall_t := 0.0
 var _stall_dumped := false
 
@@ -196,6 +255,8 @@ func _run() -> void:
 		_shop()
 		_command()
 		_stall_check()
+		if use_strikes:
+			await _powers()
 		_log_t += STEP
 		if _log_t >= LOG_EVERY:
 			_log_t = 0.0
@@ -203,5 +264,6 @@ func _run() -> void:
 	if not _ended:
 		print("AUTO RESULT TIMEOUT at %.0f game s with no end state" % _t)
 		_status()
+	print("AUTO powers used: %d strikes, %d airstrikes" % [_strikes_fired, _airstrikes_fired])
 	Engine.time_scale = 1.0
 	get_tree().quit()

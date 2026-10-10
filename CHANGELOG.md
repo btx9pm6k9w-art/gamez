@@ -5,6 +5,16 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-10
 
+### Mac playtest of bcd7ccc (waves paused during the hold, fifth Veteran tank)
+Scripted player, speed 6, no script errors in any run:
+- Recruit: wins at 5:06, 3:10, 3:20.
+- Veteran: **wins at 3:58, 3:29, 4:13** (all three bonus objectives met).
+- Elite: losses at 4:12 and 3:33; with the new `--autoplay-strikes` (precision strike
+  and airstrike on the largest unseen-by-friendlies enemy cluster) still losses at
+  4:42 and 5:10 after 5 and 2 powers.
+- `--autoplay-strikes` focuses the camera on the best enemy cluster at least 16 m from
+  any friendly, then calls the power on its screen position, as a player would.
+
 ### Mission 1 Veteran made winnable
 The scripted player lost every Veteran run, because during the hold it faced
 the leftover garrison, wave 1 and both counter-attacks at once.
