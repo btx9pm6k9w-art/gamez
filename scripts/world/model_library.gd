@@ -136,3 +136,43 @@ void fragment() {
 			var copy := base.duplicate() as Material
 			copy.next_pass = _outline_mats[key]
 			mi.set_surface_override_material(s, copy)
+
+
+## The first mesh of a model, scaled and centred so it is `size` metres across
+## and sits on y = 0, as a standalone ArrayMesh-compatible Mesh plus the
+## transform applied. Used for MultiMesh scatter where a node tree would be too
+## heavy. `tint` multiplies every albedo colour.
+static func baked_mesh(model: String, size: float, tint := Color.WHITE) -> Mesh:
+	var root := spawn(model)
+	var box := bounds(root)
+	var mi: MeshInstance3D = null
+	for n in root.find_children("*", "MeshInstance3D", true, false):
+		mi = n as MeshInstance3D
+		break
+	if mi == null:
+		root.free()
+		return null
+	var k := size / maxf(maxf(box.size.x, box.size.z), 0.0001)
+	var c := box.get_center()
+	var xf := Transform3D(Basis.IDENTITY.scaled(Vector3.ONE * k), -Vector3(c.x, box.position.y, c.z) * k)
+	var out := ArrayMesh.new()
+	var src := mi.mesh
+	for sidx in src.get_surface_count():
+		var arrays := src.surface_get_arrays(sidx)
+		var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+		var moved := PackedVector3Array()
+		moved.resize(verts.size())
+		var node_xf := xf_to(mi, root)
+		for i in verts.size():
+			moved[i] = xf * (node_xf * verts[i])
+		arrays[Mesh.ARRAY_VERTEX] = moved
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		var mat := src.surface_get_material(sidx)
+		if mat is BaseMaterial3D:
+			var copy := mat.duplicate() as BaseMaterial3D
+			copy.albedo_color = copy.albedo_color * tint
+			out.surface_set_material(sidx, copy)
+		else:
+			out.surface_set_material(sidx, mat)
+	root.free()
+	return out

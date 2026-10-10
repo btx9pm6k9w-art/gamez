@@ -187,8 +187,62 @@ func _run_high_costs() -> void:
 	get_tree().quit()
 
 
+## Image-quality sweep at High: internal resolution, upscaler and anti-aliasing
+## combinations, with frame rate and a screenshot of each.
+func _run_aa() -> void:
+	var vp := get_viewport()
+	var win := get_window().size
+	var window_mp := win.x * win.y / 1e6
+	var shadow_cfgs := {}
+	var configs := [
+		# name, budget MP (0 = native), mode, taa, msaa, fxaa, shadow atlas
+		["a_base_3.2MP_spatial_taa", 3.2, "spatial", true, 0, false, 4096],
+		["b_5.0MP_spatial_taa", 5.0, "spatial", true, 0, false, 4096],
+		["c_6.5MP_spatial_taa", 6.5, "spatial", true, 0, false, 4096],
+		["d_native_taa", 0.0, "none", true, 0, false, 4096],
+		["e_5.0MP_spatial_msaa2", 5.0, "spatial", false, 2, true, 4096],
+		["f_native_msaa2_fxaa", 0.0, "none", false, 2, true, 4096],
+		["g_5.0MP_temporal", 5.0, "temporal", false, 0, false, 4096],
+		["h_5.0MP_spatial_taa_shadow8k", 5.0, "spatial", true, 0, false, 8192],
+	]
+	for c: Array in configs:
+		GameSettings.apply_preset(GameSettings.Preset.HIGH)
+		var scale := 1.0 if float(c[1]) <= 0.0 else clampf(sqrt(float(c[1]) / window_mp), 0.3, 1.0)
+		match String(c[2]):
+			"spatial":
+				vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_METALFX_SPATIAL
+			"temporal":
+				vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_METALFX_TEMPORAL
+			_:
+				vp.scaling_3d_mode = Viewport.SCALING_3D_MODE_BILINEAR
+		vp.scaling_3d_scale = scale
+		vp.use_taa = bool(c[3])
+		vp.msaa_3d = [Viewport.MSAA_DISABLED, Viewport.MSAA_2X, Viewport.MSAA_4X][int(c[4]) / 2]
+		vp.screen_space_aa = Viewport.SCREEN_SPACE_AA_FXAA if bool(c[5]) else Viewport.SCREEN_SPACE_AA_DISABLED
+		RenderingServer.directional_shadow_atlas_set_size(int(c[6]), false)
+		await get_tree().create_timer(3.0).timeout
+		var frames := 0
+		var t0 := Time.get_ticks_usec()
+		while Time.get_ticks_usec() - t0 < 4e6:
+			await get_tree().process_frame
+			frames += 1
+		var fps := frames / ((Time.get_ticks_usec() - t0) / 1e6)
+		print("BENCH aa %-30s scale=%.2f render=%dx%d fps=%.1f" % [c[0], scale, int(win.x * scale), int(win.y * scale), fps])
+		await RenderingServer.frame_post_draw
+		var img := vp.get_texture().get_image()
+		img.convert(Image.FORMAT_RGBA8)
+		if vp.use_hdr_2d:
+			img.linear_to_srgb()
+		img.save_png(out_dir.path_join("aa_%s.png" % c[0]))
+	print("BENCH done")
+	get_tree().quit()
+
+
 func _run() -> void:
 	_print_census()
+	if "--benchmark-aa" in OS.get_cmdline_user_args():
+		_run_aa()
+		return
 	if "--benchmark-high-costs" in OS.get_cmdline_user_args():
 		_run_high_costs()
 		return

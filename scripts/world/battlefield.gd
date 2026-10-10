@@ -558,7 +558,30 @@ func _build_landmarks() -> void:
 		p.y = terrain.height_at(p)
 		if not terrain.is_land(p) or terrain.slope_at(p) > 0.3 or not _clear_of_bases(p) or terrain.dune_at(p) > 0.2:
 			continue
-		var tree := SetDressing.ghaf(_rng)
+		var tree: Node3D = null
+		if ModelLibrary.has("bush_d"):
+			# Ghaf: a broad, flat-topped acacia-like crown. The bush model, scaled up
+			# and lifted on a short trunk, reads better than the old dark blobs.
+			tree = Node3D.new()
+			var trunk := MeshInstance3D.new()
+			var tm := CylinderMesh.new()
+			tm.top_radius = 0.18
+			tm.bottom_radius = 0.28
+			tm.height = 1.8
+			trunk.mesh = tm
+			trunk.position.y = 0.9
+			var tmat := StandardMaterial3D.new()
+			tmat.albedo_color = Color(0.32, 0.24, 0.17)
+			tmat.roughness = 0.95
+			trunk.material_override = tmat
+			tree.add_child(trunk)
+			var crown := ModelLibrary.fitted("bush_d", _rng.randf_range(3.6, 5.0), _rng.randf() * TAU)
+			crown.position.y = 1.4
+			crown.scale.y *= 0.8
+			ModelLibrary.tint(crown, Color(0.85, 0.9, 0.62))
+			tree.add_child(crown)
+		else:
+			tree = SetDressing.ghaf(_rng)
 		tree.position = p
 		tree.rotation.y = _rng.randf() * TAU
 		tree.scale = Vector3.ONE * _rng.randf_range(0.8, 1.25)
@@ -584,7 +607,11 @@ func _build_landmarks() -> void:
 	# Desert shrubs: one MultiMesh, thousands of plants, a single draw call.
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
-	mm.mesh = SetDressing.shrub_mesh()
+	var scrub_mesh: Mesh = null
+	if ModelLibrary.has("bush_c"):
+		# A real low-poly bush instead of the generated olive blob, dried out.
+		scrub_mesh = ModelLibrary.baked_mesh("bush_c", 1.5, Color(0.78, 0.74, 0.5))
+	mm.mesh = scrub_mesh if scrub_mesh != null else SetDressing.shrub_mesh()
 	var xforms: Array[Transform3D] = []
 	for attempt in 3000:
 		var p := Vector3(_rng.randf_range(30, 190), 0, _rng.randf_range(2, 190))
@@ -603,6 +630,24 @@ func _build_landmarks() -> void:
 	shrubs.multimesh = mm
 	shrubs.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF # thousands of tiny casters for no visible gain
 	add_child(shrubs)
+
+	# Saguaro-style cacti on the dry plain: a few dozen, destructible like shrubs.
+	if ModelLibrary.has("cactus_a"):
+		var placed_cacti := 0
+		for attempt in 400:
+			if placed_cacti >= 36:
+				break
+			var cp := Vector3(_rng.randf_range(80, 190), 0, _rng.randf_range(20, 190))
+			var ch := terrain.height_at(cp)
+			if ch < 1.2 or terrain.slope_at(cp) > 0.25 or terrain.dune_at(cp) > 0.4 or not _clear_of_bases(cp):
+				continue
+			var file := "cactus_b" if _rng.randf() < 0.3 and ModelLibrary.has("cactus_b") else "cactus_a"
+			var cactus := ModelLibrary.fitted(file, _rng.randf_range(1.8, 3.2), _rng.randf() * TAU, true)
+			var holder := Node3D.new()
+			holder.add_child(cactus)
+			holder.position = Vector3(cp.x, ch - 0.05, cp.z)
+			_add_prop(holder, "shrub", 0.6, 30.0)
+			placed_cacti += 1
 
 	# Sandstone pillars and mushroom rocks rising out of the dunes.
 	for i in 9:

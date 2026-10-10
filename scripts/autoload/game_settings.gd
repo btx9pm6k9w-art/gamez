@@ -16,7 +16,10 @@ const SETTINGS_VERSION := 2
 ## rendered at before upscaling. Without the budget a maximised window on a
 ## Retina display renders 8+ MP natively and Ultra drops below 20 fps on an M4 Pro.
 const MAX_SCALE := [0.67, 0.77, 0.85, 1.0]
-const PIXEL_BUDGET_MP := [1.8, 2.6, 3.2, 4.2]
+## Measured on an M4 Pro at 8.6 MP: High at 5.0 MP holds about 60 fps and looks
+## clearly sharper than the earlier 3.2 MP (internal 2237 x 1430 was visibly soft
+## and stair-stepped on shadow and unit edges); Ultra 6.5 MP (native was 25 fps).
+const PIXEL_BUDGET_MP := [2.6, 3.8, 5.0, 6.5]
 ## The HUD is laid out for a 1080-pixel-tall window and scaled up from there.
 const UI_BASE_HEIGHT := 1080.0
 
@@ -116,7 +119,7 @@ func apply_preset(p: int) -> void:
 		# so only Ultra pays for four of them.
 		_sun.directional_shadow_mode = [DirectionalLight3D.SHADOW_ORTHOGONAL, DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS,
 			DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS, DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS][preset]
-		_sun.directional_shadow_max_distance = [90.0, 110.0, 130.0, 200.0][preset]
+		_sun.directional_shadow_max_distance = [90.0, 100.0, 100.0, 160.0][preset]
 
 	# Screen-space effects and global illumination.
 	RenderingServer.environment_set_ssao_quality(

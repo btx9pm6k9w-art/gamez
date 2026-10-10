@@ -44,6 +44,10 @@ unmodified; recolouring and scaling happen in code at load time.
 | `assets/models/tank_b.glb` | [Tank](https://poly.pizza/m/cW3zvvkMOM) | Quaternius | CC0 1.0 |
 | `assets/models/truck_armored.glb` | [Pickup Truck Armored](https://poly.pizza/m/RUwMItmU4B) | Quaternius | CC0 1.0 |
 | `assets/models/turret_cannon.glb` | [Turret Cannon](https://poly.pizza/m/mNJ6poH7Cp) | Quaternius | CC0 1.0 |
+| `assets/models/bush_c.glb` | [Bush](https://poly.pizza/m/I5KhMKZKju) | Isa Lousberg | CC0 1.0 |
+| `assets/models/bush_d.glb` | [Bush](https://poly.pizza/m/BVYSNurXMV) | Quaternius | CC0 1.0 |
+| `assets/models/cactus_a.glb` | [Cactus](https://poly.pizza/m/HsEJgRLQWX) | Quaternius | CC0 1.0 |
+| `assets/models/cactus_b.glb` | [Cactus Flowers](https://poly.pizza/m/Da39rzd54k) | Quaternius | CC0 1.0 |
 
 ### Textures (`assets/textures/`)
 

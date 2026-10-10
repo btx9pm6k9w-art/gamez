@@ -5,6 +5,29 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-10
 
+### Graphics pass: sharper image, mipmapped terrain, real scrub (from the Mac)
+Owner feedback: pixelated, stair-stepped edges, poor textures and terrain objects.
+- **Internal resolution** was the main cause: High rendered 2237 x 1430 (3.2 MP) and
+  upscaled to the 3670 x 2342 Retina window, which showed as soft, jagged edges on
+  units, outlines and shadows. Budgets are now 2.6 / 3.8 / 5.0 / 6.5 MP for
+  Low / Medium / High / Ultra. Measured at mission start: Low 119 fps, Medium 89,
+  **High 60 (cap)**, Ultra about 35 to 40 (native 8.7 MP was 25).
+- Tested on High and not adopted: native TAA (43 fps), native MSAA 2x + FXAA (42),
+  MetalFX temporal at 5 MP (47), 8K shadows (3 fps cost for little gain). MSAA 2x on
+  top of the 5 MP upscale looked the same as TAA, so TAA stays.
+- **Terrain textures had no mipmaps** (`mipmaps/generate=false`, uncompressed), which
+  makes sand and rock shimmer and alias in motion. They are now mipmapped and
+  VRAM-compressed (normal maps flagged as normals).
+- Shadow distance on Medium and High is 100 m (was 130), so the same shadow map
+  covers less ground and edges are about 30% finer.
+- **Props**: the desert shrub scatter uses a real CC0 bush mesh (MultiMesh), ghaf
+  trees are bush crowns on trunks, and 36 CC0 cacti dot the dry plain.
+  `ModelLibrary.baked_mesh()` bakes a model's mesh for MultiMesh use.
+- Still primitive (SetDressing): mangroves, sandstone pillars, pumpjacks, flare
+  stack, platform, lighthouse, pier, containers, dhows, tankers. The map has about
+  100 props left that are generated boxes and blobs.
+- `--benchmark-aa` sweeps resolution, upscaler and AA combinations with screenshots.
+
 ### Mac playtest of bcd7ccc (waves paused during the hold, fifth Veteran tank)
 Scripted player, speed 6, no script errors in any run:
 - Recruit: wins at 5:06, 3:10, 3:20.

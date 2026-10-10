@@ -2,28 +2,29 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bsqsj4wafuhp4"
-path.s3tc="res://.godot/imported/coast_sand_rocks_02_nor_1k.jpg-57f2302f6106cfa7e4171b59de01d801.s3tc.ctex"
-path.etc2="res://.godot/imported/coast_sand_rocks_02_nor_1k.jpg-57f2302f6106cfa7e4171b59de01d801.etc2.ctex"
+uid="uid://dpl4tcs7bg1f3"
+path="res://.godot/imported/bush_d_Atlas.png-34438426260ee56f4d15d853b2188d04.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc", "etc2_astc"],
-"vram_texture": true
+"vram_texture": false
+}
+generator_parameters={
+"md5": "3795851c85c1d7fbaf0b3b63054ec153"
 }
 
 [deps]
 
-source_file="res://assets/textures/coast_sand_rocks_02_nor_1k.jpg"
-dest_files=["res://.godot/imported/coast_sand_rocks_02_nor_1k.jpg-57f2302f6106cfa7e4171b59de01d801.s3tc.ctex", "res://.godot/imported/coast_sand_rocks_02_nor_1k.jpg-57f2302f6106cfa7e4171b59de01d801.etc2.ctex"]
+source_file="res://assets/models/bush_d_Atlas.png"
+dest_files=["res://.godot/imported/bush_d_Atlas.png-34438426260ee56f4d15d853b2188d04.ctex"]
 
 [params]
 
-compress/mode=2
+compress/mode=0
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=1
+compress/normal_map=0
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
