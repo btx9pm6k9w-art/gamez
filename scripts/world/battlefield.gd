@@ -686,7 +686,7 @@ func _animate_landmarks(delta: float) -> void:
 	if _lamp and is_instance_valid(_lamp):
 		_lamp.rotation.y += delta * 0.9
 	for s in _ships:
-		var n: Node3D = s["node"]
+		var n = s["node"] # untyped: a destroyed dhow is freed, and a freed node cannot be typed
 		if not is_instance_valid(n):
 			continue
 		var speed: float = s["speed"]

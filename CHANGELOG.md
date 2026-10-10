@@ -5,6 +5,19 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-10
 
+### Mac playtest of the three-act Mission 1 (c024f50)
+- **Fixed** `Battlefield._animate_landmarks` assigning a freed dhow to a typed
+  `Node3D` once a boat prop had been destroyed (10,408 script errors in one Recruit
+  run, 519 in a Veteran run).
+- Autoplay now logs the hold clock, detects an empty village while an army is alive
+  (`AUTO STALL`), and takes `--autoplay-max=<game seconds>`.
+- Scripted player results at speed 6: Recruit wins at 3:58, 4:16, 4:17 and 4:32 (one
+  600 s run ground on without finishing the launch site); **Veteran lost 4 of 4**
+  (3:06, 3:43, 3:46, 4:50); Elite lost 2:17 and 2:35. The scripted player never uses
+  the strike or airstrike and trickles reinforcements in one at a time.
+- The hold clock counts 120 s down when we hold the village, stops while the enemy
+  outnumbers us, and also stops when we have no unit in it at all (by design).
+
 ### Mission 1 retuned after the scripted playtest
 The scripted player won in under 2 minutes of game time. Mission 1 now has a
 middle act and a harder last objective:

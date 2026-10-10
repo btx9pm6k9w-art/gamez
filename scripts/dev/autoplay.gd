@@ -7,7 +7,7 @@ extends Node
 
 const STEP := 5.0 # game seconds between decisions
 const LOG_EVERY := 15.0
-const MAX_GAME_TIME := 1080.0
+var max_game_time := 1080.0
 
 var main: Node
 var speed := 5.0
@@ -26,6 +26,8 @@ func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--autoplay-speed="):
 			speed = float(arg.trim_prefix("--autoplay-speed="))
+		elif arg.begins_with("--autoplay-max="):
+			max_game_time = float(arg.trim_prefix("--autoplay-max="))
 	_run.call_deferred()
 
 
@@ -113,8 +115,6 @@ func _command() -> void:
 	for u in _ground(Battlefield.COALITION):
 		if _guard.has(u) or _derrick_team.has(u):
 			continue
-		if u.has_meta("reinforcement") and (_village_t < 0.0 or _t < _village_t + 25.0):
-			continue
 		if _idle(u) or not u.has_meta("auto_goal") or u.get_meta("auto_goal") != _phase:
 			u.set_meta("auto_goal", _phase)
 			u.order_move(goal + Vector3(randf_range(-6, 6), 0, randf_range(-6, 6)), true)
@@ -134,10 +134,46 @@ func _status() -> void:
 	for o in m.objectives:
 		states.append("%s=%s" % [o["id"], ["hidden", "active", "done", "failed"][int(o["state"])] if int(o["state"]) < 4 else str(o["state"])])
 	var pier := Vector3(62, 0, 164)
+	var hold_text := String(m.objective("hold").get("progress", "")) if not m.objective("hold").is_empty() else ""
+	var village := Vector3(100, 0, 100)
+	print("AUTO hold: '%s'; village: ours=%d enemy=%d within %.0f m" % [hold_text, m.count_near(Battlefield.COALITION, village, m.VILLAGE_RADIUS), m.count_near(Battlefield.IRAN, village, m.VILLAGE_RADIUS), m.VILLAGE_RADIUS])
 	print("AUTO t=%.0f own=%d %s foes=%d credits=%d derricks=%d waves=%d pier(enemy=%d ours=%d threat=%.0fs) kills=%d losses=%d | %s" % [
 		_t, own.size(), JSON.stringify(kinds), foes.size(), int(eco.credits), eco.owned_derricks(), main.ai.waves_sent,
 		m.count_near(Battlefield.IRAN, pier, m.PIER_RADIUS), m.count_near(Battlefield.COALITION, pier, m.PIER_RADIUS),
 		m._pier_threat, m.kills, m.losses, " ".join(states)])
+
+
+var _stall_t := 0.0
+var _stall_dumped := false
+
+
+## Dumps what every own unit is doing when the village has been empty for a
+## minute while we still have an army: that would be a soft lock for the hold.
+func _stall_check() -> void:
+	var m = main.mission
+	var village := Vector3(100, 0, 100)
+	if m.objective("hold").is_empty() or not m.is_active("hold"):
+		_stall_t = 0.0
+		return
+	if m.count_near(Battlefield.COALITION, village, m.VILLAGE_RADIUS) > 0 or _ground(Battlefield.COALITION).size() < 5:
+		_stall_t = 0.0
+		return
+	_stall_t += STEP
+	if _stall_t >= 60.0 and not _stall_dumped:
+		_stall_dumped = true
+		print("AUTO STALL t=%.0f village empty for %.0f s with %d ground units alive" % [_t, _stall_t, _ground(Battlefield.COALITION).size()])
+		for u in _ground(Battlefield.COALITION):
+			var tgt := "none"
+			if is_instance_valid(u.target):
+				tgt = "%s at %.0f m (naval=%s air=%s visible=%s)" % [u.target.unit_id, u.global_position.distance_to(u.target.global_position), u.target.is_naval, u.target.is_air, u.target.visible]
+			print("AUTO STALL %-9s state=%d hold=%s waypoints=%d at (%.0f,%.0f) %.0f m from village, target=%s, goal_meta=%s, guard=%s derrick_team=%s" % [
+				u.unit_id, int(u.state), u.hold, u.waypoints.size(), u.global_position.x, u.global_position.z,
+				u.global_position.distance_to(village), tgt, str(u.get_meta("auto_goal", "")), _guard.has(u), _derrick_team.has(u)])
+		var boats := []
+		for u: Unit in main.battlefield.units[Battlefield.IRAN]:
+			if is_instance_valid(u) and u.is_alive():
+				boats.append("%s(%.0f,%.0f)" % [u.unit_id, u.global_position.x, u.global_position.z])
+		print("AUTO STALL enemy units: %s" % ", ".join(boats))
 
 
 func _run() -> void:
@@ -153,12 +189,13 @@ func _run() -> void:
 		print("AUTO RESULT %s at %.0f game s (%d:%02d). %s" % ["WIN" if won else "LOSS", mission.elapsed, int(mission.elapsed) / 60, int(mission.elapsed) % 60, summary.replace("\n", " | ")]))
 	mission.objective_completed.connect(func(text: String) -> void: print("AUTO t=%.0f objective done: %s" % [mission.elapsed, text]))
 	mission.objective_added.connect(func(text: String) -> void: print("AUTO t=%.0f objective revealed: %s" % [mission.elapsed, text]))
-	while not _ended and _t < MAX_GAME_TIME:
+	while not _ended and _t < max_game_time:
 		await get_tree().create_timer(STEP).timeout
 		_t += STEP
 		_assign()
 		_shop()
 		_command()
+		_stall_check()
 		_log_t += STEP
 		if _log_t >= LOG_EVERY:
 			_log_t = 0.0
