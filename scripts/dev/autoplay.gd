@@ -93,10 +93,15 @@ func _command() -> void:
 			u.order_move(p + Vector3(2.5, 0, 0), false)
 	var village_done: bool = not mission.is_active("village") and mission.objective("village")["state"] != mission.State.HIDDEN
 	if village_done and _phase == "village":
+		_phase = "hold"
+		print("AUTO t=%.0f village taken, holding it" % _t)
+	# Reinforcements land when the hold ends (_village_t marks the landing).
+	var hold_done: bool = mission.objective("hold").is_empty() or mission.objective("hold")["state"] == mission.State.DONE
+	if village_done and hold_done and _phase != "launchers":
 		_phase = "launchers"
 		_village_t = _t
-		print("AUTO t=%.0f village taken, pushing on the launch site" % _t)
-	var goal: Vector3 = Vector3(100, 0, 100) if _phase == "village" else mission.LAUNCH_SITE
+		print("AUTO t=%.0f hold over, pushing on the launch site" % _t)
+	var goal: Vector3 = Vector3(100, 0, 100) if _phase != "launchers" else mission.LAUNCH_SITE
 	if _village_t >= 0.0 and not _reinf_logged and _t >= _village_t + 25.0:
 		_reinf_logged = true
 		var rally: Vector3 = eco.rally["infantry"]

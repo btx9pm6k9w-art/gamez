@@ -5,6 +5,27 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-10
 
+### Mission 1 retuned after the scripted playtest
+The scripted player won in under 2 minutes of game time. Mission 1 now has a
+middle act and a harder last objective:
+- **Added** "Hold the village until the reinforcements land", revealed when
+  the village falls. It is a 120 s clock that stops while the enemy outnumbers
+  us there or we have nobody in it. Halfway through, a second enemy group
+  attacks the village.
+- **Changed** the reinforcements and the launch-site intel to arrive when the
+  hold ends, not when the village falls. A unit that sees a launcher still
+  reveals that objective early, and it is revealed anyway after 7 minutes
+  (was 4).
+- **Changed** the village garrison to 9, 12 or 15 by difficulty (was 6, 8 or
+  10). The launch site now has 2 to 4 tanks and 4 to 8 infantry (was 1 to 3
+  and 2 to 4).
+- **Changed** the first enemy wave to 45 s (was 70 s), and derrick income to
+  6 credits a second (was 8), because credits piled up past 19,000.
+- **Changed** `--autoplay` to hold the village until the hold ends before it
+  pushes on.
+- **Changed** the Mission 1 section of the design doc (and `docs/DESIGN.md`) to
+  describe the three acts and the pier rule.
+
 ### Mission 1 playtest with a scripted player (from the Mac)
 `-- --autoplay [--autoplay-speed=6] [--autoplay-difficulty=0|1|2]` (scripts/dev/autoplay.gd)
 buys units, sends a squad to the derricks, takes the village with the main force and

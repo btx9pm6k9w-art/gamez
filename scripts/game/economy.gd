@@ -15,7 +15,7 @@ signal derrick_changed(index: int, holder: int)
 signal unit_delivered(unit: Unit)
 
 const START_CREDITS := 1500.0
-const INCOME_PER_DERRICK := 8.0 # credits per second
+const INCOME_PER_DERRICK := 6.0 # credits per second
 const CAPTURE_RADIUS := 9.0
 const CAPTURE_TIME := 5.0
 const MAX_QUEUE := 6

@@ -14,10 +14,18 @@ const PIER := Vector3(62, 0, 164)
 const PIER_RADIUS := 18.0
 const PIER_LOSS_TIME := 30.0
 const LAUNCH_SITE := Vector3(152, 0, 52)
+## After the village falls the player holds it until the reinforcements land;
+## the clock pauses while the enemy outnumbers us there.
+const HOLD_VILLAGE_TIME := 120.0
+## Launch site revealed anyway after this long, if scouting and the hold
+## have not revealed it.
+const LAUNCHERS_FALLBACK := 420.0
 
 var _hold := 0.0
 var _counter_sent := false
 var _pier_threat := 0.0
+var _hold_left := HOLD_VILLAGE_TIME
+var _second_push := false
 ## Radio beats already played (ids).
 var _said := {}
 
@@ -40,7 +48,7 @@ func briefing() -> Dictionary:
 			"Mix your army: rifles beat infantry, Javelins and tanks beat armour, laser trucks stop drones.",
 			"F and G call the commander's strikes: they cost credits and hit your own troops too.",
 			"The K9 robot dogs see furthest. Scout ahead before you commit the tanks.",
-			"Taking the village opens the road for reinforcements from the ships.",
+			"Hold the village after you take it: the ships land reinforcements once it is safe.",
 		],
 	}
 
@@ -52,6 +60,7 @@ func _setup() -> void:
 
 func _declare_objectives() -> void:
 	add_objective("village", "Take the oasis village and hold it")
+	add_objective("hold", "Hold the village until the reinforcements land", true, false)
 	add_objective("pier", "Keep the pier: do not let the enemy hold it")
 	objective("pier")["done_on_win"] = true
 	add_objective("oil", "Secure 2 of the 3 oil derricks east of the pier")
@@ -81,7 +90,7 @@ func _spawn_forces() -> void:
 		battlefield.spawn_unit("patrol_boat", c, Vector3(30, 0, 164 + k * 12.0), deg_to_rad(90.0))
 
 	var face_sw := deg_to_rad(135.0)
-	var garrison := 6 + difficulty * 2
+	var garrison := 9 + difficulty * 3
 	for k in garrison:
 		var a := TAU * k / float(garrison)
 		battlefield.spawn_unit("irgc_rpg" if k % 3 == 0 else "irgc", i, VILLAGE + Vector3(cos(a) * 6.0, 0, sin(a) * 6.0), face_sw)
@@ -91,10 +100,10 @@ func _spawn_forces() -> void:
 	# Mountain launch site: launchers behind a tank screen.
 	for k in 3:
 		battlefield.spawn_unit("shahed_launcher", i, Vector3(146 + k * 6.0, 0, 50), face_sw)
-	for k in 1 + difficulty:
-		battlefield.spawn_unit("karrar", i, Vector3(140 + k * 8.0, 0, 62), face_sw)
 	for k in 2 + difficulty:
-		battlefield.spawn_unit("irgc", i, Vector3(140 + k * 3.0, 0, 66), face_sw)
+		battlefield.spawn_unit("karrar", i, Vector3(136 + k * 8.0, 0, 62), face_sw)
+	for k in 4 + difficulty * 2:
+		battlefield.spawn_unit("irgc_rpg" if k % 2 == 0 else "irgc", i, Vector3(138 + (k % 4) * 3.0, 0, 66 + (k / 4) * 3.0), face_sw)
 	# Fast attack craft in the lee of the island.
 	for k in 2 + mini(difficulty, 1):
 		battlefield.spawn_unit("fast_boat", i, Vector3(8 + k * 6.0, 0, 44), deg_to_rad(180.0))
@@ -131,8 +140,11 @@ func _evaluate(dt: float) -> void:
 		elif alive < 2:
 			fail("oil")
 
-	# Launchers: revealed by the village intel, or after a few minutes anyway.
-	if objective("launchers")["state"] == State.HIDDEN and elapsed > 240.0:
+	if is_active("hold"):
+		_evaluate_hold(dt)
+
+	# Launchers: revealed when the village is held, by scouting, or late anyway.
+	if objective("launchers")["state"] == State.HIDDEN and elapsed > LAUNCHERS_FALLBACK:
 		reveal("launchers")
 	if is_active("launchers"):
 		var left := count_units(Battlefield.IRAN, "shahed_launcher")
@@ -216,17 +228,41 @@ func _ping(p: Vector3) -> void:
 		sel.alert_time = Time.get_ticks_msec() / 1000.0
 
 
+## Second act: the enemy wants the village back. The landing craft needs
+## HOLD_VILLAGE_TIME seconds; the clock stops while they outnumber us there.
+func _evaluate_hold(dt: float) -> void:
+	var enemies := count_near(Battlefield.IRAN, VILLAGE, VILLAGE_RADIUS)
+	var ours := count_near(Battlefield.COALITION, VILLAGE, VILLAGE_RADIUS)
+	if ours == 0 or enemies > ours:
+		set_progress("hold", "Contested: %d s to go, clock stopped" % int(ceil(_hold_left)))
+	else:
+		_hold_left -= dt
+		set_progress("hold", "Reinforcements in %d s" % int(ceil(maxf(_hold_left, 0.0))))
+	if not _second_push and _hold_left < HOLD_VILLAGE_TIME * 0.5:
+		_second_push = true
+		ai.counter_attack(VILLAGE, 2 + difficulty * 2)
+		hud.notify("HQ: second enemy group moving on the village.", HUD.WARN)
+	if _hold_left <= 0.0:
+		complete("hold")
+		_after_hold()
+
+
 func _after_village() -> void:
-	reveal("launchers")
-	hud.show_message("Village secured", HUD.ACCENT, 6.0, "Reinforcements are landing at the pier. Intel marks the launch site to the north-east.")
-	if battlefield.vision != null:
-		battlefield.vision.reveal(LAUNCH_SITE, 20.0)
-	_ping(LAUNCH_SITE)
-	_land_reinforcements()
+	reveal("hold")
+	hud.show_message("Village secured", HUD.ACCENT, 6.0, "Hold it. A landing craft with reinforcements is on its way.")
 	if not _counter_sent:
 		_counter_sent = true
 		ai.counter_attack(VILLAGE, 3 + difficulty * 2)
 		UnitVoice.alert("counter_attack", 0.0)
+
+
+func _after_hold() -> void:
+	reveal("launchers")
+	hud.show_message("Reinforcements landing", HUD.ACCENT, 6.0, "Intel from the village marks the drone launch site in the hills to the north-east.")
+	if battlefield.vision != null:
+		battlefield.vision.reveal(LAUNCH_SITE, 20.0)
+	_ping(LAUNCH_SITE)
+	_land_reinforcements()
 
 
 ## The road through the village is open: a landing craft brings a fresh

@@ -32,7 +32,7 @@ const BOAT_SWARM := [0, 3, 4] # fast boats added to each wave
 const SEA_SPAWN := Vector3(12, 0, 4)
 const HARBOUR := Vector3(32, 0, 168)
 const BEACHHEAD := Vector3(62, 0, 160)
-const FIRST_WAVE_DELAY := 70.0
+const FIRST_WAVE_DELAY := 45.0
 const WAVE_INTERVAL := 75.0
 ## How long a sighting stays useful, in seconds.
 const MEMORY := 30.0
