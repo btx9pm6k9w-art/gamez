@@ -207,9 +207,11 @@ which read commit 9dfc06c) in its priority order; see DECISIONS #23.
 5. **Polish Mission 1 to a complete 8 to 12 minute mission** before adding
    units. Done: pier loss condition, scouting reveal, village hold act
    (DECISIONS #24), reinforcements, radio tips, `--autoplay` scripted player
-   (`-- --autoplay --autoplay-speed=6 --autoplay-difficulty=0|1|2`). To do:
-   rerun the autoplay (target about 5 minutes of game time), a human Elite
-   test, a road or dune flank choice, more cover on the approach.
+   (`-- --autoplay --autoplay-speed=6 --autoplay-difficulty=0|1|2`). Scripted
+   results on bcd7ccc: Recruit wins in 3 to 5 min, Veteran in 3.5 to 4 min
+   (both bonuses), Elite lost all 4 runs. To do: a human playtest (Elite and
+   the pier loss timer, which no script run has triggered), a road or dune
+   flank choice, more cover on the approach.
 6. **Refactor as it grows:** split `unit.gd` into movement, weapon, vision and
    command parts; typed resources for unit defs; a spatial grid for target
    searches before armies get bigger.
