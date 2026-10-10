@@ -41,6 +41,9 @@ var strike_cooldown := 0.0
 var airstrike_armed := false
 var airstrike_cooldown := 0.0
 var hovered: Unit
+## Base building placement (scripts/control/base_placer.gd), when the
+## mission has a base.
+var placer: Node
 
 var _last_click_time := 0.0
 var _last_group_key := -1
@@ -53,6 +56,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed:
+				if placer != null and placer.active:
+					placer.confirm()
+					return
 				if strike_armed:
 					_fire_strike(mb.position)
 					return
@@ -91,12 +97,22 @@ func _unhandled_input(event: InputEvent) -> void:
 				else:
 					_click_select(mb.position, mb.shift_pressed, mb.double_click or mb.ctrl_pressed or mb.meta_pressed)
 		elif mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
+			if placer != null and placer.active:
+				placer.cancel()
+				return
 			if attack_move_armed or patrol_armed or strike_armed or airstrike_armed or rally_armed:
 				# Right click cancels an armed order, as in every classic RTS.
 				_disarm()
 				return
 			var u := _unit_at(mb.position)
 			var own := _only_own(selected)
+			# A factory on its own: right click sets where its units gather.
+			if own.size() == 1 and own[0].is_structure and own[0].def.has("produces") and economy != null:
+				var fp := ground_point(mb.position)
+				if fp != Vector3.INF:
+					economy.set_rally(own[0].def["produces"], fp)
+					Audio.play_ui("ui_confirm")
+				return
 			if u != null and u.team != Battlefield.COALITION:
 				for s in own:
 					s.order_attack(u, mb.shift_pressed)
@@ -137,7 +153,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			f.y = battlefield.terrain.height_at(f)
 			Airstrike.launch(battlefield, f, rig.camera.global_basis.x)
 		elif event.is_action_pressed("select_all_army"):
-			_set_selection(_own_units())
+			_set_selection(_own_army())
 		elif event.is_action_pressed("cycle_time_of_day"):
 			battlefield.cycle_time_of_day()
 		elif event.is_action_pressed("cancel"):
@@ -181,6 +197,8 @@ func select_units(units: Array[Unit]) -> void:
 
 
 func _disarm() -> void:
+	if placer != null and placer.active:
+		placer.cancel()
 	rally_armed = false
 	attack_move_armed = false
 	patrol_armed = false
@@ -233,6 +251,15 @@ func _own_units() -> Array[Unit]:
 	return out
 
 
+## Own units without the base structures (box select, select all).
+func _own_army() -> Array[Unit]:
+	var out: Array[Unit] = []
+	for u in _own_units():
+		if not u.is_structure:
+			out.append(u)
+	return out
+
+
 func _screen_pos(u: Unit) -> Vector2:
 	return rig.camera.unproject_position(u.aim_point())
 
@@ -265,7 +292,7 @@ func _set_selection(units: Array[Unit]) -> void:
 		u.selected = true
 	if not selected.is_empty():
 		Audio.play_ui("ui_select")
-		if selected[0].team == Battlefield.COALITION:
+		if selected[0].team == Battlefield.COALITION and not selected[0].is_structure:
 			UnitVoice.ack("select", selected[0].def["model"])
 	selection_changed.emit(selected)
 
@@ -311,7 +338,7 @@ func _box_select(rect: Rect2, additive: bool) -> void:
 	var list: Array[Unit] = []
 	if additive:
 		list = _only_own(selected)
-	for u in _own_units():
+	for u in _own_army():
 		if _on_screen(u) and rect.has_point(_screen_pos(u)) and not list.has(u):
 			list.append(u)
 	_set_selection(list)
@@ -365,7 +392,7 @@ func _reachable(units: Array[Unit], p: Vector3) -> Array[Unit]:
 	var on_land := battlefield.terrain.is_land(p)
 	var out: Array[Unit] = []
 	for u in units:
-		if u.is_air or u.is_naval != on_land:
+		if u.is_air or u.is_structure or u.is_naval != on_land:
 			out.append(u)
 	if out.is_empty() and not units.is_empty():
 		Audio.play_ui("ui_error")

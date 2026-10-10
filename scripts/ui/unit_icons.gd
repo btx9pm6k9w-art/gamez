@@ -90,5 +90,40 @@ static func draw(ci: CanvasItem, kind: String, rect: Rect2, color: Color) -> voi
 			_poly(ci, rect, [Vector2(36, 28), Vector2(58, 6), Vector2(66, 6), Vector2(56, 28)], color)
 			_poly(ci, rect, [Vector2(36, 32), Vector2(58, 54), Vector2(66, 54), Vector2(56, 32)], color)
 			_poly(ci, rect, [Vector2(10, 30), Vector2(14, 18), Vector2(20, 18), Vector2(22, 29)], color)
+		"power_plant":
+			_poly(ci, rect, [Vector2(10, 56), Vector2(10, 34), Vector2(54, 34), Vector2(54, 56)], color)
+			for x in [66.0, 84.0]:
+				_poly(ci, rect, [Vector2(x - 9, 56), Vector2(x - 6, 8), Vector2(x + 6, 8), Vector2(x + 9, 56)], color)
+		"refinery":
+			for x in [18.0, 42.0]:
+				_poly(ci, rect, [Vector2(x - 11, 56), Vector2(x - 11, 30), Vector2(x + 11, 30), Vector2(x + 11, 56)], color)
+				_circle(ci, rect, Vector2(x, 30), 11.0, color)
+			_poly(ci, rect, [Vector2(66, 56), Vector2(68, 4), Vector2(76, 4), Vector2(78, 56)], color)
+			_line(ci, rect, Vector2(52, 40), Vector2(68, 40), color, 3.0)
+		"barracks":
+			_poly(ci, rect, [Vector2(6, 56), Vector2(6, 36), Vector2(94, 36), Vector2(94, 56)], color)
+			_poly(ci, rect, [Vector2(6, 36), Vector2(20, 22), Vector2(80, 22), Vector2(94, 36)], color)
+			_poly(ci, rect, [Vector2(44, 56), Vector2(44, 42), Vector2(56, 42), Vector2(56, 56)], Color(0, 0, 0, 0.5))
+			_line(ci, rect, Vector2(88, 36), Vector2(88, 6), color, 2.0)
+			_poly(ci, rect, [Vector2(88, 6), Vector2(98, 9), Vector2(88, 13)], color)
+		"vehicle_depot":
+			_poly(ci, rect, [Vector2(6, 56), Vector2(6, 22), Vector2(70, 22), Vector2(70, 56)], color)
+			_poly(ci, rect, [Vector2(20, 56), Vector2(20, 32), Vector2(56, 32), Vector2(56, 56)], Color(0, 0, 0, 0.5))
+			_line(ci, rect, Vector2(78, 56), Vector2(78, 14), color, 3.0)
+			_line(ci, rect, Vector2(62, 14), Vector2(96, 14), color, 3.0)
+		"guard_post":
+			_poly(ci, rect, [Vector2(20, 56), Vector2(24, 38), Vector2(76, 38), Vector2(80, 56)], color)
+			_poly(ci, rect, [Vector2(36, 38), Vector2(38, 26), Vector2(62, 26), Vector2(64, 38)], color)
+			_line(ci, rect, Vector2(60, 30), Vector2(94, 28), color, 3.0)
+		"interceptor":
+			_poly(ci, rect, [Vector2(22, 56), Vector2(26, 44), Vector2(74, 44), Vector2(78, 56)], color)
+			_poly(ci, rect, [Vector2(36, 44), Vector2(40, 30), Vector2(64, 30), Vector2(66, 44)], color)
+			_line(ci, rect, Vector2(44, 32), Vector2(66, 6), color, 3.5)
+			_line(ci, rect, Vector2(54, 34), Vector2(78, 8), color, 3.5)
+		"fob":
+			_poly(ci, rect, [Vector2(6, 56), Vector2(6, 30), Vector2(64, 30), Vector2(64, 56)], color)
+			_poly(ci, rect, [Vector2(14, 30), Vector2(14, 18), Vector2(46, 18), Vector2(46, 30)], color)
+			_line(ci, rect, Vector2(56, 30), Vector2(56, 4), color, 2.0)
+			_circle(ci, rect, Vector2(82, 52), 12.0, color)
 		_:
 			_circle(ci, rect, Vector2(50, 30), 16.0, color)

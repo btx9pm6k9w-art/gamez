@@ -49,6 +49,9 @@ const ALERTS := {
 	"derrick": "Oil derrick captured.",
 	"derrick_lost": "Oil derrick lost.",
 	"counter_attack": "Enemy counter-attack detected.",
+	"structure_ready": "Construction complete.",
+	"low_power": "Low power.",
+	"structure_lost": "Structure lost.",
 }
 
 static var enabled := true

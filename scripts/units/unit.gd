@@ -17,6 +17,8 @@ var hp := 100.0
 var max_hp := 100.0
 var is_air := false
 var is_naval := false
+## Base structures (scripts/buildings/structure.gd) never move.
+var is_structure := false
 var state := State.IDLE
 var target: Unit
 var move_goal := Vector3.ZERO

@@ -5,6 +5,47 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-10
 
+### Base building prototype
+- **Added** base structures (`scripts/data/building_defs.gd`): Forward
+  Operating Base, Power Plant, Oil Refinery, Barracks, Vehicle Depot, Guard
+  Post and Interceptor Battery, each with cost, build time, power and
+  prerequisites. Procedural models are in `scripts/buildings/building_models.gd`.
+- **Added** `Structure` (`scripts/buildings/structure.gd`), a Unit that never
+  moves. Structures get health bars, selection, fog, targeting and damage
+  like troops. They register as solid props, so the navmesh routes round them
+  and they stop shots. They rise out of the ground when placed and collapse
+  into burnt rubble when destroyed. Defences fire with the normal weapon
+  code.
+- **Added** base mode to the economy:
+  - The FOB builds one structure at a time; a finished one waits as READY
+    until placed.
+  - Barracks and the Vehicle Depot open their production lines, and units
+    roll out of the factory door.
+  - Power supply and drain: on low power, production runs at half speed and
+    defences hold fire.
+  - Refineries add income.
+  - Placement rules: within 14 m of the base, dry and fairly level ground,
+    clear of units, props and other structures.
+- **Added** placement mode (`scripts/control/base_placer.gd`): a green or red
+  see-through ghost on a 1 m grid, with the reason it cannot be placed. Left
+  click places; right click or Esc puts it back.
+- **Added** to the sidebar in base mode: a power meter and Base and Units
+  tabs. Cards show READY, build progress and what they still need (for
+  example "Needs Barracks").
+- **Added** building silhouettes to the unit icons.
+- **Added** voice alerts: "Construction complete", "Low power" and
+  "Structure lost".
+- **Changed** selection: box select and select-all skip structures. Right
+  click with a factory selected sets its rally point. Move orders ignore
+  structures.
+- **Added** a "structure" armour class: rifles do 8%, cannons 90%, missiles
+  70%, autocannons 35% and lasers 15%; drones and strikes do full damage.
+- **Changed** mission unit counts to skip structures.
+- **Added** `-- --base-test`, a base-building trial on the Mission 1 map
+  (`scripts/missions/mission_base_test.gd`).
+- **Changed** the design doc (and `docs/DESIGN.md`): a base-building section,
+  and derrick income corrected to 6 credits a second.
+
 ### Graphics pass: sharper image, mipmapped terrain, real scrub (from the Mac)
 Owner feedback: pixelated, stair-stepped edges, poor textures and terrain objects.
 - **Internal resolution** was the main cause: High rendered 2237 x 1430 (3.2 MP) and

@@ -157,15 +157,19 @@ scripts/world/           Battlefield (lighting, props, navigation, damage),
                          SetDressing (trees, rigs, ships, landmarks)
 scripts/units/           Unit (ground, air and naval logic), UnitModels, Projectile
 scripts/abilities/       Airstrike
-scripts/missions/        Mission base (objectives, briefing data), Mission 1
-scripts/game/            Economy (oil derricks, credits, production queues)
-scripts/control/         RTSCamera, SelectionManager (orders, Precision Strike)
+scripts/missions/        Mission base (objectives, briefing data), Mission 1,
+                         mission_base_test (`-- --base-test`)
+scripts/game/            Economy (oil derricks, credits, production queues,
+                         base mode: power, structure queue, placement rules)
+scripts/buildings/       Structure (a Unit that never moves), BuildingModels
+scripts/control/         RTSCamera, SelectionManager (orders, Precision Strike),
+                         BasePlacer (ghost placement of a ready structure)
 scripts/ai/              SimpleAI (waves, boat swarm, counter-attacks)
 scripts/ui/              ui_theme (colours, fonts, panels), HUD and its parts
                          (minimap, objective_panel, unit_card, ability_bar,
                          alert_feed, unit_icons), sidebar, briefing, main_menu
 scripts/audio/           Audio manager and SoundSynth (procedural sounds and music)
-scripts/data/            UnitDefs (stats and display names)
+scripts/data/            UnitDefs (stats and display names), BuildingDefs
 shaders/                 terrain, water, post-process; shaders/vfx/ smoke, fire,
                          fireball, distortion
 docs/                    DESIGN.md, DECISIONS.md, SOURCES.md
@@ -217,9 +221,16 @@ which read commit 9dfc06c) in its priority order; see DECISIONS #23.
    searches before armies get bigger.
 7. Art pass 2: one consistent model style (see "Art and UI direction" in the
    design doc), unit portraits from the models, veterancy.
-8. Base building on the slice economy, then missions 2 and 3. Each mission is
-   specified in `docs/DESIGN.md` under "Mission guide"; extend
-   `scripts/missions/mission.gd`.
+8. **Base building (prototype, untested in the engine):** `-- --base-test`
+   starts a base by the pier on the Mission 1 map (DECISIONS #25). Check on
+   the Mac: placement ghost and reasons, navmesh carving round new
+   structures, power and low power, factories delivering units, defences
+   firing, structure deaths. Then Mission 2 (Al Dhafra), which needs its own
+   desert map, and Mission 3. Each mission is specified in `docs/DESIGN.md`
+   under "Mission guide"; extend `scripts/missions/mission.gd`.
+   Structures register as props by touching `Battlefield.props`,
+   `_blockers` and `_schedule_rebake()` directly; give Battlefield a proper
+   `add_structure()` call when the Mac hands battlefield.gd back.
 9. Real audio from the Sonniss GDC bundles. Log every asset in `docs/SOURCES.md`.
 
 ## Open questions for the owner

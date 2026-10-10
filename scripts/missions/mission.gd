@@ -178,12 +178,13 @@ func _on_unit_killed(u: Unit) -> void:
 
 # --- Helpers for subclasses ------------------------------------------------
 
+## Helpers count troops only, never base structures.
 func count_near(team: int, p: Vector3, radius: float, ground_only := true) -> int:
 	var n := 0
 	for u: Unit in battlefield.units[team]:
 		if not is_instance_valid(u) or not u.is_alive():
 			continue
-		if ground_only and (u.is_air or u.is_naval):
+		if u.is_structure or (ground_only and (u.is_air or u.is_naval)):
 			continue
 		if Vector2(u.global_position.x - p.x, u.global_position.z - p.z).length() < radius:
 			n += 1
@@ -195,7 +196,7 @@ func count_units(team: int, id := "", ground_only := true) -> int:
 	for u: Unit in battlefield.units[team]:
 		if not is_instance_valid(u) or not u.is_alive():
 			continue
-		if ground_only and (u.is_air or u.is_naval):
+		if u.is_structure or (ground_only and (u.is_air or u.is_naval)):
 			continue
 		if id == "" or u.unit_id == id:
 			n += 1

@@ -5,7 +5,7 @@ class_name UnitDefs
 ## autocannon (fast bursts of small explosive rounds, used by boats).
 ## "naval": true units move on water only.
 ## "armor" is the target class for the counter system (infantry, light,
-## heavy, naval, air); see VS_ARMOR for how each weapon fares against it.
+## heavy, naval, air, structure); see VS_ARMOR for how each weapon fares against it.
 ## Buildable units carry "cost" (credits), "build_time" (seconds) and
 ## "category" (the production line: infantry, vehicle or naval).
 
@@ -20,11 +20,11 @@ const FACTION_NAMES := {
 ## beat armour, autocannons shred light vehicles and boats, lasers own the
 ## sky, and nothing on the ground but rifles and autocannons can touch air.
 const VS_ARMOR := {
-	"rifle": {"infantry": 1.0, "light": 0.6, "heavy": 0.15, "naval": 0.3, "air": 0.8},
-	"cannon": {"infantry": 0.55, "light": 1.2, "heavy": 1.0, "naval": 1.0, "air": 0.0},
-	"atgm": {"infantry": 0.25, "light": 1.3, "heavy": 1.6, "naval": 1.2, "air": 0.0},
-	"autocannon": {"infantry": 1.0, "light": 1.3, "heavy": 0.35, "naval": 1.2, "air": 1.0},
-	"laser": {"infantry": 0.4, "light": 0.5, "heavy": 0.3, "naval": 0.4, "air": 1.0},
+	"rifle": {"infantry": 1.0, "light": 0.6, "heavy": 0.15, "naval": 0.3, "air": 0.8, "structure": 0.08},
+	"cannon": {"infantry": 0.55, "light": 1.2, "heavy": 1.0, "naval": 1.0, "air": 0.0, "structure": 0.9},
+	"atgm": {"infantry": 0.25, "light": 1.3, "heavy": 1.6, "naval": 1.2, "air": 0.0, "structure": 0.7},
+	"autocannon": {"infantry": 1.0, "light": 1.3, "heavy": 0.35, "naval": 1.2, "air": 1.0, "structure": 0.35},
+	"laser": {"infantry": 0.4, "light": 0.5, "heavy": 0.3, "naval": 0.4, "air": 1.0, "structure": 0.15},
 }
 
 const DEFS := {
@@ -120,7 +120,9 @@ const DEFS := {
 
 
 static func get_def(id: String) -> Dictionary:
-	return DEFS[id]
+	if DEFS.has(id):
+		return DEFS[id]
+	return BuildingDefs.get_def(id)
 
 
 ## How hard weapon hits armor; 1.0 for strikes, drones and unknown pairs.

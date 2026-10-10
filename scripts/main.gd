@@ -9,6 +9,8 @@ const Briefing := preload("res://scripts/ui/briefing.gd")
 const Sidebar := preload("res://scripts/ui/sidebar.gd")
 const MainMenu := preload("res://scripts/ui/main_menu.gd")
 const Vision := preload("res://scripts/world/vision.gd")
+const MissionBaseTest := preload("res://scripts/missions/mission_base_test.gd")
+const BasePlacer := preload("res://scripts/control/base_placer.gd")
 
 const SEED := 2028
 
@@ -66,6 +68,13 @@ func _ready() -> void:
 	ai.economy = economy
 	selection.economy = economy
 
+	var placer := BasePlacer.new()
+	placer.name = "BasePlacer"
+	placer.economy = economy
+	placer.selection = selection
+	battlefield.add_child(placer)
+	selection.placer = placer
+
 	hud = HUD.new()
 	add_child(hud)
 	hud.setup(battlefield, selection, rig, ai)
@@ -84,11 +93,14 @@ func _ready() -> void:
 	_overlay_layer.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_overlay_layer)
 
-	mission = Mission01.new()
+	var base_test := "--base-test" in OS.get_cmdline_user_args()
+	mission = MissionBaseTest.new() if base_test else Mission01.new()
 	mission.name = "Mission"
 	add_child(mission)
 	mission.mission_ended.connect(_on_mission_ended)
-	if "--autoplay" in OS.get_cmdline_user_args():
+	if base_test:
+		_start_mission(1)
+	elif "--autoplay" in OS.get_cmdline_user_args():
 		var level := 1
 		for arg in OS.get_cmdline_user_args():
 			if arg.begins_with("--autoplay-difficulty="):
