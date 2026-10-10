@@ -1,7 +1,8 @@
 # Godot generated
 .godot/
 *.translation
-export_presets.cfg
+# export_presets.cfg is committed (no credentials: Godot keeps those in
+# .godot/export_credentials.cfg, which is ignored above)
 # Builds
 /build/
 *.app
