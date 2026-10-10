@@ -190,7 +190,7 @@ which read commit 9dfc06c) in its priority order; see DECISIONS #23.
    sea surface (the decal skips transparent water), commander powers needing a
    spotted target, AI protecting its launchers.
 3. Polish the group AI: retreat thresholds, launcher escorts, harbour assault.
-4. **Water routes for boats:** a water navmesh instead of probing headings.
+4. Check the boats' water routes on the Mac (round the island, into the harbour).
 5. **Polish Mission 1 to a complete 8 to 12 minute mission** before adding
    units: cover, scouting, a road or dune flank choice, harbour loss condition.
 6. **Refactor as it grows:** split `unit.gd` into movement, weapon, vision and

@@ -34,6 +34,12 @@ var _nav_template_heavy: NavigationMesh
 var _nav_pending_bakes := 0
 const NAV_LAYER_INFANTRY := 1
 const NAV_LAYER_VEHICLE := 2
+const NAV_LAYER_WATER := 4
+## Boats path over a grid of open-water cells kept clear of the shore, so
+## they can plan a way round the island instead of feeling along the coast.
+const WATER_CELL := 2.0
+const SHORE_CLEARANCE := 2 # cells of water required around a navigable cell
+var _water_region: NavigationRegion3D
 var _nav_template: NavigationMesh
 var _nav_baking := false
 var _nav_pending := false
@@ -69,6 +75,7 @@ func build(seed_value: int) -> void:
 	_build_props()
 	_build_landmarks()
 	_build_navigation()
+	_build_water_navigation()
 	_particle_collider = GPUParticlesCollisionHeightField3D.new()
 	_particle_collider.size = Vector3(MAP_SIZE, 60, MAP_SIZE)
 	_particle_collider.resolution = GPUParticlesCollisionHeightField3D.RESOLUTION_1024
@@ -878,6 +885,54 @@ func _build_navigation() -> void:
 	_nav_template_heavy.agent_radius = 2.0
 	_nav_template_heavy.agent_max_slope = 32.0
 	rebake_navigation()
+
+
+func _build_water_navigation() -> void:
+	var n := int(MAP_SIZE / WATER_CELL)
+	var water := PackedByteArray()
+	water.resize(n * n)
+	for z in n:
+		for x in n:
+			var p := Vector3((x + 0.5) * WATER_CELL, 0, (z + 0.5) * WATER_CELL)
+			water[z * n + x] = 0 if terrain.is_land(p) else 1
+	var nm := NavigationMesh.new()
+	nm.cell_size = 0.5
+	var verts := PackedVector3Array()
+	for z in n + 1:
+		for x in n + 1:
+			verts.append(Vector3(x * WATER_CELL, Terrain.WATER_LEVEL, z * WATER_CELL))
+	nm.vertices = verts
+	var c := SHORE_CLEARANCE
+	for z in range(c, n - c):
+		for x in range(c, n - c):
+			var open := true
+			for dz in range(-c, c + 1):
+				for dx in range(-c, c + 1):
+					if water[(z + dz) * n + x + dx] == 0:
+						open = false
+						break
+				if not open:
+					break
+			if open:
+				var i := z * (n + 1) + x
+				# Clockwise seen from above, as Godot's navigation expects.
+				nm.add_polygon(PackedInt32Array([i, i + 1, i + n + 2, i + n + 1]))
+	_water_region = NavigationRegion3D.new()
+	_water_region.name = "NavigationWater"
+	_water_region.navigation_layers = NAV_LAYER_WATER
+	_water_region.navigation_mesh = nm
+	add_child(_water_region)
+
+
+## Route over open water from a to b, or an empty array when there is none
+## (or the map has not synced yet); boats then steer straight as before.
+func water_path(a: Vector3, b: Vector3) -> PackedVector3Array:
+	var map := get_world_3d().navigation_map
+	if NavigationServer3D.map_get_iteration_id(map) == 0:
+		return PackedVector3Array()
+	a.y = Terrain.WATER_LEVEL
+	b.y = Terrain.WATER_LEVEL
+	return NavigationServer3D.map_get_path(map, a, b, true, NAV_LAYER_WATER)
 
 
 func rebake_navigation() -> void:

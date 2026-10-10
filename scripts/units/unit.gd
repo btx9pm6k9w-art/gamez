@@ -63,6 +63,9 @@ var _model_base := Vector3.ZERO
 var _los_ok := true
 var _los_target: Unit
 var _los_timer := 0.0
+## Boats: planned route over open water to _boat_path_goal.
+var _boat_path := PackedVector3Array()
+var _boat_path_goal := Vector3.INF
 
 
 func setup(id: String, p_team: int, bf: Node) -> void:
@@ -360,9 +363,9 @@ func _process_boat(delta: float) -> void:
 	var goal := Vector3.INF
 	match state:
 		State.MOVE:
-			goal = move_goal
+			goal = _boat_waypoint(move_goal)
 		State.ATTACK_MOVE:
-			goal = move_goal if target == null else _orbit_point()
+			goal = _boat_waypoint(move_goal) if target == null else _orbit_point()
 		State.ATTACK:
 			goal = _orbit_point()
 	if target != null and global_position.distance_to(target.global_position) <= float(def["range"]) and has_line_of_fire(target):
@@ -393,6 +396,21 @@ func _process_boat(delta: float) -> void:
 		_velocity *= -0.2
 	else:
 		global_position = next
+
+
+## Next point on the water route to dest; replans when dest changes. The
+## last point is dest itself, so arrival checks still work.
+func _boat_waypoint(dest: Vector3) -> Vector3:
+	if dest.distance_to(_boat_path_goal) > 1.0:
+		_boat_path_goal = dest
+		_boat_path = battlefield.water_path(global_position, dest)
+	while _boat_path.size() > 1:
+		var next := _boat_path[0]
+		if Vector2(next.x - global_position.x, next.z - global_position.z).length() < 6.0:
+			_boat_path.remove_at(0)
+		else:
+			return Vector3(next.x, global_position.y, next.z)
+	return dest
 
 
 func _orbit_point() -> Vector3:

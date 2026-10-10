@@ -3,6 +3,16 @@
 Every change to the project, newest first. Dates are UTC. Commit hashes refer to
 the `claude/prototype-foundation` branch until PR #1 is merged.
 
+## 2026-10-10
+
+### Water routes for boats
+- Boats now plan a route over open water (`Battlefield.water_path`) on a
+  navigation layer of their own: a 2 m grid of sea cells kept two cells clear
+  of the shore, built directly from the terrain (no bake). They follow it
+  point by point and still feel ahead for the coast, so they go round the
+  island instead of nosing along the shoreline. Falls back to steering
+  straight if no route exists.
+
 ## 2026-10-09
 
 ### Follow-ups to the Mac field test
