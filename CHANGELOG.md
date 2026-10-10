@@ -5,6 +5,17 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-10
 
+### Mac retest of water routes and group AI
+- **Fixed** the "axis must be normalized" error for good: `Vector3.slerp` loses
+  precision when the hull is already nearly aligned with the ground and logged the
+  error every physics tick (about 3,900 in one run). Vehicle tilt now blends and
+  renormalises instead.
+- **Fixed** assault groups idling at an empty target: a unit that cannot squeeze onto
+  the exact spot never returns to idle, so the "everyone idle" test never passed.
+  Units within 14 m of the target with nothing to shoot now count.
+- `--field-test` gained a boat route check (harbour to behind the island) and logs
+  the fast-boat swarm's distance to the harbour.
+
 ### Water routes for boats
 - Boats now plan a route over open water (`Battlefield.water_path`) on a
   navigation layer of their own: a 2 m grid of sea cells kept two cells clear

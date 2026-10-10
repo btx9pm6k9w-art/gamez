@@ -315,8 +315,10 @@ func _integrate_ground(delta: float) -> void:
 	# Vehicles pitch and roll with the ground; infantry stay upright.
 	var up := Vector3.UP
 	if def["radius"] > 1.0:
-		# slerp needs unit vectors; after many ticks basis.y drifts off length 1.
-		up = basis.y.normalized().slerp(battlefield.terrain.normal_at(global_position).normalized(), clampf(delta * 6.0, 0.0, 1.0)).normalized()
+		# Blend and renormalise. Vector3.slerp builds a rotation axis from the cross
+		# product, which loses precision when the two directions are nearly equal
+		# and then logs "axis must be normalized" every tick.
+		up = basis.y.lerp(battlefield.terrain.normal_at(global_position), clampf(delta * 6.0, 0.0, 1.0)).normalized()
 	var fwd := Vector3(-sin(_yaw), 0.0, -cos(_yaw))
 	var right := fwd.cross(up).normalized()
 	fwd = up.cross(right).normalized()

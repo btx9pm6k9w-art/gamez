@@ -269,7 +269,9 @@ func _run_groups(dt: float) -> void:
 				# Target reached and nothing in sight: look for the next one.
 				var idle := 0
 				for u in units:
-					if u.state == Unit.State.IDLE and u.target == null:
+					# Units that cannot squeeze onto the exact spot stay in their move
+					# state for ever, so being close with nothing to shoot counts too.
+					if u.target == null and (u.state == Unit.State.IDLE or u.global_position.distance_to(g["target"]) < 14.0):
 						idle += 1
 				if idle == units.size():
 					# Whatever was seen here has gone: forget it so the group

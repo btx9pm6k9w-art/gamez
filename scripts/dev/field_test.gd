@@ -116,6 +116,48 @@ func _fog_checks() -> void:
 	await get_tree().process_frame
 
 
+## Sends a patrol boat from the harbour to the far (west) side of the island
+## and checks that it routes round the island instead of grinding into it.
+func _boat_checks() -> void:
+	var bf: Battlefield = main.battlefield
+	var boats := _units(Battlefield.COALITION, "patrol_boat")
+	if boats.is_empty():
+		print("FIELD boat: no patrol boat")
+		return
+	var boat := boats[0]
+	var island := Vector3(Terrain.ISLAND.x, 0, Terrain.ISLAND.y)
+	var dest := island + Vector3(-11, 0, 0)
+	var from := boat.global_position
+	var route: PackedVector3Array = bf.water_path(from, dest)
+	var length := 0.0
+	var closest := 1e9
+	for i in route.size():
+		if i > 0:
+			length += route[i - 1].distance_to(route[i])
+		closest = minf(closest, Vector2(route[i].x - island.x, route[i].z - island.z).length())
+	print("FIELD boat route harbour to behind island: points=%d length=%.0f m straight=%.0f m, closest point to island centre %.0f m, dest is land=%s" % [
+		route.size(), length, from.distance_to(dest), closest, bf.terrain.is_land(dest)])
+	Engine.time_scale = 5.0
+	boat.order_move(dest)
+	var last := boat.global_position
+	var stuck := 0
+	var nearest_island := 1e9
+	var t := 0.0
+	while t < 90.0 and Vector2(boat.global_position.x - dest.x, boat.global_position.z - dest.z).length() > 8.0:
+		await get_tree().create_timer(5.0).timeout
+		t += 5.0
+		if boat.global_position.distance_to(last) < 2.0:
+			stuck += 1
+		last = boat.global_position
+		nearest_island = minf(nearest_island, Vector2(last.x - island.x, last.z - island.z).length())
+		if not boat.is_alive():
+			break
+	print("FIELD boat run: %s after %.0f game s, %.0f m from destination, stalled 5 s intervals=%d, came within %.0f m of the island centre, on land=%s" % [
+		"arrived" if Vector2(last.x - dest.x, last.z - dest.z).length() <= 8.0 else "did not arrive", t,
+		Vector2(last.x - dest.x, last.z - dest.z).length(), stuck, nearest_island, bf.terrain.is_land(last)])
+	Engine.time_scale = 1.0
+
+
 ## Speeds time up and logs what each AI group is doing until two waves have
 ## been sent and had time to arrive.
 func _watch_waves() -> void:
@@ -133,6 +175,15 @@ func _watch_waves() -> void:
 			print("FIELD ai t=%.0f wave %d sent from %s" % [game_t, seen_waves, ai.last_wave_from])
 		if seen_waves >= 2:
 			after_second += 10.0
+		var swarm := _units(Battlefield.IRAN, "fast_boat")
+		if not swarm.is_empty():
+			var best := 1e9
+			var beached := 0
+			for b in swarm:
+				best = minf(best, Vector2(b.global_position.x - SimpleAI.HARBOUR.x, b.global_position.z - SimpleAI.HARBOUR.z).length())
+				if main.battlefield.terrain.is_land(b.global_position):
+					beached += 1
+			print("FIELD ai t=%.0f fast boats alive=%d, nearest is %.0f m from the harbour, on land=%d" % [game_t, swarm.size(), best, beached])
 		for g: Dictionary in ai.groups:
 			var alive: Array[Unit] = []
 			for u in g["units"]:
@@ -274,6 +325,7 @@ func _run() -> void:
 			if get_viewport().use_hdr_2d:
 				img.linear_to_srgb()
 			img.save_jpg(out_dir.path_join("shading_%s.jpg" % view[0]), 0.92)
+	await _boat_checks()
 	await _watch_waves()
 	print("FIELD done")
 	get_tree().quit()
