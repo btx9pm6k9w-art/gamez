@@ -59,8 +59,10 @@ func owned_derricks(team := Battlefield.COALITION) -> int:
 
 
 func derrick_position(i: int) -> Vector3:
-	var node: Node3D = derricks[i]["prop"]["node"]
-	return node.global_position if is_instance_valid(node) else Vector3.INF
+	# Untyped: a destroyed derrick's node is freed, and a freed instance cannot be
+	# assigned to a typed variable (that logged an error every minimap redraw).
+	var node = derricks[i]["prop"]["node"]
+	return (node as Node3D).global_position if is_instance_valid(node) else Vector3.INF
 
 
 func queued(id: String) -> int:

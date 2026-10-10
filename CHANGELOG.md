@@ -5,6 +5,22 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-10
 
+### Mission 1 playtest with a scripted player (from the Mac)
+`-- --autoplay [--autoplay-speed=6] [--autoplay-difficulty=0|1|2]` (scripts/dev/autoplay.gd)
+buys units, sends a squad to the derricks, takes the village with the main force and
+pushes on the launch site, keeping two rangers at the pier.
+- Recruit: **win at 1:40**, 7 units lost. Veteran: **win at 1:55**, 13 lost.
+  Elite: **loss at 3:25**, "all ground forces lost" (35 lost, 60 kills).
+- The mission is much shorter than the 8 to 12 minutes planned: the village and 2
+  derricks fall by about 40 s, the launch site is reached by 100 s, and the first
+  wave only arrives at 70 s.
+- The pier timer never fired in any run (no enemy reached the pier).
+- Reinforcements land at the pier and walk to the rally point (all within 2 to 7 m of
+  it 25 s later).
+- **Fixed**: `Economy.derrick_position` logged "Trying to assign invalid previously
+  freed instance" on every minimap redraw once a derrick had been destroyed (782 in
+  one Elite run).
+
 ### Mission 1 pacing: pier defence, scouting, reinforcements, radio
 - **Added** a primary "Keep the pier" objective. Enemy ground units on the
   pier with none of ours for 30 s lose the mission; the objective counts the

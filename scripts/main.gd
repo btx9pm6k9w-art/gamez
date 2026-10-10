@@ -88,7 +88,16 @@ func _ready() -> void:
 	mission.name = "Mission"
 	add_child(mission)
 	mission.mission_ended.connect(_on_mission_ended)
-	if "--field-test" in OS.get_cmdline_user_args():
+	if "--autoplay" in OS.get_cmdline_user_args():
+		var level := 1
+		for arg in OS.get_cmdline_user_args():
+			if arg.begins_with("--autoplay-difficulty="):
+				level = int(arg.trim_prefix("--autoplay-difficulty="))
+		_start_mission(level)
+		var autoplay: Node = preload("res://scripts/dev/autoplay.gd").new()
+		autoplay.main = self
+		add_child(autoplay)
+	elif "--field-test" in OS.get_cmdline_user_args():
 		_start_mission(1)
 		var field_test: Node = preload("res://scripts/dev/field_test.gd").new()
 		field_test.main = self
