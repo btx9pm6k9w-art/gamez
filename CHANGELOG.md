@@ -5,6 +5,23 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-10
 
+### Mission 1 pacing: pier defence, scouting, reinforcements, radio
+- **Added** a primary "Keep the pier" objective. Enemy ground units on the
+  pier with none of ours for 30 s lose the mission; the objective counts the
+  seconds down and the first push sounds an alert and marks the pier for Space.
+  `Mission._check_primary` now treats an active `done_on_win` primary as met.
+- **Added** a scouting reward: any coalition unit that sees a drone launcher
+  reveals the launch-site objective early ("Launch site spotted").
+- **Added** village reinforcements: taking the village lands an Abrams, three
+  Rangers and a Javelin at the pier (two more units on Easy, no tank on Elite)
+  and they move to the rally point. The village intel also uncovers the launch
+  site on the fog map and marks it for Space.
+- **Added** radio tips that play once: scout with the K9 (20 s), no oil yet
+  (75 s), spend banked credits on a strike (150 s), keep laser trucks with the
+  army once the launchers are known.
+- **Changed** the briefing tips: strikes cost credits and hit your own troops,
+  K9s see furthest, the village opens the road for reinforcements.
+
 ### Mac retest of water routes and group AI
 - **Fixed** the "axis must be normalized" error for good: `Vector3.slerp` loses
   precision when the hull is already nearly aligned with the ground and logged the

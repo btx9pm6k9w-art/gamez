@@ -9,9 +9,17 @@ const VILLAGE := Vector3(100, 0, 100)
 const VILLAGE_RADIUS := 20.0
 const HOLD_TIME := 8.0
 const TIME_LIMIT := 15.0 * 60.0
+## The landing area at the pier. Lose it and the mission is lost.
+const PIER := Vector3(62, 0, 164)
+const PIER_RADIUS := 18.0
+const PIER_LOSS_TIME := 30.0
+const LAUNCH_SITE := Vector3(152, 0, 52)
 
 var _hold := 0.0
 var _counter_sent := false
+var _pier_threat := 0.0
+## Radio beats already played (ids).
+var _said := {}
 
 
 func briefing() -> Dictionary:
@@ -30,7 +38,9 @@ func briefing() -> Dictionary:
 			"Stand next to a derrick with no enemy nearby to capture it.",
 			"Spend credits in the sidebar on the right. Right click a unit there to cancel.",
 			"Mix your army: rifles beat infantry, Javelins and tanks beat armour, laser trucks stop drones.",
-			"F and G call the commander's strikes. Space jumps to the last alert.",
+			"F and G call the commander's strikes: they cost credits and hit your own troops too.",
+			"The K9 robot dogs see furthest. Scout ahead before you commit the tanks.",
+			"Taking the village opens the road for reinforcements from the ships.",
 		],
 	}
 
@@ -42,6 +52,8 @@ func _setup() -> void:
 
 func _declare_objectives() -> void:
 	add_objective("village", "Take the oasis village and hold it")
+	add_objective("pier", "Keep the pier: do not let the enemy hold it")
+	objective("pier")["done_on_win"] = true
 	add_objective("oil", "Secure 2 of the 3 oil derricks east of the pier")
 	add_objective("launchers", "Destroy the Shahed drone launchers in the hills", true, false)
 	add_objective("boats", "Bonus: keep both patrol boats afloat", false)
@@ -134,6 +146,10 @@ func _evaluate(dt: float) -> void:
 		if remaining <= 0.0:
 			fail("fast")
 
+	_evaluate_pier(dt)
+	_scouting()
+	_radio()
+
 	# Defeat: no ground forces and no money to buy more.
 	if count_units(Battlefield.COALITION) == 0 and economy.credits < 150.0:
 		var building := false
@@ -144,13 +160,91 @@ func _evaluate(dt: float) -> void:
 			end(false, "All ground forces lost.")
 
 
+## The pier is lost when enemy troops stand on it with none of ours for
+## PIER_LOSS_TIME seconds; the countdown shows on the objective.
+func _evaluate_pier(dt: float) -> void:
+	if not is_active("pier"):
+		return
+	var enemies := count_near(Battlefield.IRAN, PIER, PIER_RADIUS)
+	var ours := count_near(Battlefield.COALITION, PIER, PIER_RADIUS)
+	if enemies > 0 and ours == 0:
+		if _pier_threat == 0.0:
+			hud.show_message("The pier is under attack", HUD.WARN, 4.0, "Send troops back or we lose the landing")
+			UnitVoice.alert("under_attack", 0.0)
+			_ping(PIER)
+		_pier_threat += dt
+		set_progress("pier", "Enemy on the pier: %d s" % maxi(int(PIER_LOSS_TIME - _pier_threat), 0))
+		if _pier_threat >= PIER_LOSS_TIME:
+			fail("pier")
+	else:
+		_pier_threat = maxf(_pier_threat - dt * 2.0, 0.0)
+		set_progress("pier", "Enemy at the pier" if enemies > 0 else "")
+
+
+## Seeing a launcher with any unit reveals the launch-site objective early.
+func _scouting() -> void:
+	if objective("launchers")["state"] != State.HIDDEN or battlefield.vision == null:
+		return
+	for u: Unit in battlefield.units[Battlefield.IRAN]:
+		if is_instance_valid(u) and u.unit_id == "shahed_launcher" and battlefield.vision.is_visible_at(u.global_position):
+			hud.show_message("Launch site spotted", HUD.ACCENT, 5.0, "Good eyes. The drone launchers are in the hills to the north-east")
+			reveal("launchers")
+			_ping(u.global_position)
+			return
+
+
+## Short radio lines that teach and pace the mission, each played once.
+func _radio() -> void:
+	_say("scout", elapsed > 20.0, "HQ: K9 dogs see furthest. Send one ahead toward the village.")
+	_say("oil", elapsed > 75.0 and economy.owned_derricks() == 0, "HQ: no income yet. The oil derricks are east of the pier.")
+	_say("strike", elapsed > 150.0 and economy.credits >= 600.0, "HQ: credits banked. F calls a precision strike on a dug-in position.")
+	_say("ad", elapsed > 200.0 and is_active("launchers"), "HQ: keep the laser trucks with the army; they shoot down the drones.")
+
+
+func _say(id: String, when: bool, text: String) -> void:
+	if when and not _said.has(id):
+		_said[id] = true
+		hud.notify(text)
+		Audio.play_ui("alert")
+
+
+## Mark a place on the tactical map; Space jumps the camera there.
+func _ping(p: Vector3) -> void:
+	var sel: SelectionManager = hud.selection
+	if sel != null:
+		sel.alert_pos = p
+		sel.alert_time = Time.get_ticks_msec() / 1000.0
+
+
 func _after_village() -> void:
 	reveal("launchers")
-	hud.show_message("Village secured", HUD.ACCENT, 6.0, "Intel: the launch site is in the hills to the north-east.")
+	hud.show_message("Village secured", HUD.ACCENT, 6.0, "Reinforcements are landing at the pier. Intel marks the launch site to the north-east.")
+	if battlefield.vision != null:
+		battlefield.vision.reveal(LAUNCH_SITE, 20.0)
+	_ping(LAUNCH_SITE)
+	_land_reinforcements()
 	if not _counter_sent:
 		_counter_sent = true
 		ai.counter_attack(VILLAGE, 3 + difficulty * 2)
 		UnitVoice.alert("counter_attack", 0.0)
+
+
+## The road through the village is open: a landing craft brings a fresh
+## company to the pier, smaller on Elite.
+func _land_reinforcements() -> void:
+	var c := Battlefield.COALITION
+	var kinds := ["abrams", "ranger", "ranger", "ranger", "javelin"]
+	if difficulty == 0:
+		kinds.append_array(["abrams", "ranger"])
+	elif difficulty == 2:
+		kinds.erase("abrams")
+	var rally: Vector3 = economy.rally["infantry"]
+	for k in kinds.size():
+		var u := battlefield.spawn_unit(kinds[k], c, economy.landing_zone + Vector3((k % 3) * 3.0, 0, (k / 3) * 3.0), deg_to_rad(-45.0))
+		u.set_meta("reinforcement", true)
+		u.order_move(rally + Vector3((k % 3) * 2.5, 0, (k / 3) * 2.5))
+	UnitVoice.alert("reinforcements", 0.0)
+	hud.notify("Reinforcements: %d units at the pier" % kinds.size(), Color(0.4, 1.0, 0.55))
 
 
 func _on_unit_killed(u: Unit) -> void:

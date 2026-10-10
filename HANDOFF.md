@@ -192,7 +192,9 @@ which read commit 9dfc06c) in its priority order; see DECISIONS #23.
 3. Polish the group AI: retreat thresholds, launcher escorts, harbour assault.
 4. Check the boats' water routes on the Mac (round the island, into the harbour).
 5. **Polish Mission 1 to a complete 8 to 12 minute mission** before adding
-   units: cover, scouting, a road or dune flank choice, harbour loss condition.
+   units. Done: pier loss condition, scouting reveal, village reinforcements,
+   radio tips. To do: a Mac playtest for length and difficulty, a road or dune
+   flank choice, more cover on the approach.
 6. **Refactor as it grows:** split `unit.gd` into movement, weapon, vision and
    command parts; typed resources for unit defs; a spatial grid for target
    searches before armies get bigger.

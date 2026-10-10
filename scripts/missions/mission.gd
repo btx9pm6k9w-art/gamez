@@ -163,7 +163,8 @@ func _check_primary() -> void:
 	if ended:
 		return
 	for o in objectives:
-		if o["primary"] and o["state"] != State.DONE:
+		# "Keep X" objectives (done_on_win) count as met while they hold.
+		if o["primary"] and o["state"] != State.DONE and not (o["state"] == State.ACTIVE and o.get("done_on_win", false)):
 			return
 	end(true, "All primary objectives complete.")
 
