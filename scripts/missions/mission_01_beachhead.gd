@@ -75,7 +75,7 @@ func _spawn_forces() -> void:
 	var c := Battlefield.COALITION
 	var i := Battlefield.IRAN
 	var face_ne := deg_to_rad(-45.0) # toward the Iranian hills
-	var n_tanks := 4 if difficulty < 2 else 3
+	var n_tanks: int = [4, 5, 4][difficulty]
 	for k in n_tanks:
 		battlefield.spawn_unit("abrams", c, Vector3(62 + k * 5.0, 0, 150), face_ne)
 	for k in 8:
@@ -233,7 +233,9 @@ func _ping(p: Vector3) -> void:
 func _evaluate_hold(dt: float) -> void:
 	var enemies := count_near(Battlefield.IRAN, VILLAGE, VILLAGE_RADIUS)
 	var ours := count_near(Battlefield.COALITION, VILLAGE, VILLAGE_RADIUS)
-	if ours == 0 or enemies > ours:
+	if ours == 0:
+		set_progress("hold", "No units in the village: %d s to go, clock stopped" % int(ceil(_hold_left)))
+	elif enemies > ours:
 		set_progress("hold", "Contested: %d s to go, clock stopped" % int(ceil(_hold_left)))
 	else:
 		_hold_left -= dt
@@ -243,12 +245,16 @@ func _evaluate_hold(dt: float) -> void:
 		ai.counter_attack(VILLAGE, 2 + difficulty * 2)
 		hud.notify("HQ: second enemy group moving on the village.", HUD.WARN)
 	if _hold_left <= 0.0:
+		ai.waves_held = false
 		complete("hold")
 		_after_hold()
 
 
 func _after_village() -> void:
 	reveal("hold")
+	# The counter-attacks are the pressure during the hold; regular waves
+	# wait until it ends so they do not all land at once.
+	ai.waves_held = true
 	hud.show_message("Village secured", HUD.ACCENT, 6.0, "Hold it. A landing craft with reinforcements is on its way.")
 	if not _counter_sent:
 		_counter_sent = true

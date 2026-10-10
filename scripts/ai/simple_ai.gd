@@ -32,7 +32,7 @@ const BOAT_SWARM := [0, 3, 4] # fast boats added to each wave
 const SEA_SPAWN := Vector3(12, 0, 4)
 const HARBOUR := Vector3(32, 0, 168)
 const BEACHHEAD := Vector3(62, 0, 160)
-const FIRST_WAVE_DELAY := 45.0
+const FIRST_WAVE_DELAY := 60.0
 const WAVE_INTERVAL := 75.0
 ## How long a sighting stays useful, in seconds.
 const MEMORY := 30.0
@@ -46,6 +46,8 @@ var economy: Node
 var difficulty := 1
 var spawn_point := Vector3(150, 0, 44)
 var waves_sent := 0
+## While true the wave clock stands still (a mission's scripted attack is on).
+var waves_held := false
 ## Where the latest wave came from, for the HUD.
 var last_wave_from := "the mountains"
 
@@ -69,8 +71,9 @@ func waves_remaining() -> int:
 func _process(delta: float) -> void:
 	if battlefield == null:
 		return
-	_wave_timer -= delta
-	if _wave_timer <= 0.0 and waves_sent < WAVES.size():
+	if not waves_held:
+		_wave_timer -= delta
+	if not waves_held and _wave_timer <= 0.0 and waves_sent < WAVES.size():
 		_send_wave()
 		_wave_timer = WAVE_INTERVAL * [1.35, 1.0, 0.8][difficulty]
 	_raid_timer -= delta

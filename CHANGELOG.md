@@ -5,6 +5,16 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
 
 ## 2026-10-10
 
+### Mission 1 Veteran made winnable
+The scripted player lost every Veteran run, because during the hold it faced
+the leftover garrison, wave 1 and both counter-attacks at once.
+- **Changed** regular enemy waves to pause while the village hold runs
+  (`SimpleAI.waves_held`); the two counter-attacks are the pressure there.
+- **Changed** the first wave to 60 s (was 45 s), so it no longer lands as the
+  village falls, and Veteran to start with 5 tanks (Recruit and Elite keep 4).
+- **Added** "No units in the village" to the hold objective when the clock
+  stops because nobody is there.
+
 ### Mac playtest of the three-act Mission 1 (c024f50)
 - **Fixed** `Battlefield._animate_landmarks` assigning a freed dhow to a typed
   `Node3D` once a boat prop had been destroyed (10,408 script errors in one Recruit
