@@ -83,6 +83,22 @@ git checkout claude/prototype-foundation   # until PR #1 is merged
 
 Or open Godot, choose **Import**, pick `project.godot` and press the Play button.
 
+#### Build the Mac app
+
+Needs the Godot 4.7.2 export templates once (Editor > Manage Export
+Templates > Download, about 1 GB). Then:
+
+```sh
+mkdir -p build
+~/Downloads/Godot.app/Contents/MacOS/Godot --headless --path . --export-release "macOS" build/FractureLine.zip
+```
+
+This makes `build/FractureLine.zip` (about 71 MB; the universal app inside is
+about 173 MB). It is ad-hoc signed, not notarised, so the first time you open
+it, right-click the app and choose **Open**. `build/` is not committed. The
+preset's exclude filter is empty because `main.gd` preloads the dev hooks in
+`scripts/dev/`; move those hooks out of `main.gd` before excluding them again.
+
 ### Windows (ThinkPad P1, 4 GB VRAM)
 
 ```powershell
@@ -178,12 +194,9 @@ tools/                   setup and check scripts
 Folded in the external review (`/mnt/project-files/external-review-plan.md`,
 which read commit 9dfc06c) in its priority order; see DECISIONS #23.
 
-1. **Mac export:** `export_presets.cfg` (macOS, universal, ad-hoc signed, no
-   credentials) is committed; exporting needs the Godot 4.7.2 export templates
-   (about 1 GB, the Mac has 6.4 GB free). Field test of c84e429 passed: no
-   script errors, fog lines up and costs 1.6 ms five times a second, waves
-   stage and attack, line of fire works, no rubber-banding, High at the 60 cap
-   (84 to 93 uncapped). `-- --field-test` reruns the scripted checks.
+1. **Mac export works** (art pass 2, 75 fps on High uncapped in the exported
+   app); see "Build the Mac app". Next: a Mac playtest of the full Mission 1
+   with a scripted coalition auto-play.
 2. **Check fog of war and the group AI on the Mac** (both new, untested in
    the engine): decal orientation and darkness, the cost of rebuilding the
    decal atlas when fog changes, waves staging and flanking. Later: fog on the

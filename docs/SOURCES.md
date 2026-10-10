@@ -37,6 +37,7 @@ unmodified; recolouring and scaling happen in code at load time.
 | `assets/models/rock_c.glb` | [Rock](https://poly.pizza/m/34W5ymEePk) | Quaternius | CC0 1.0 |
 | `assets/models/rock_d.glb` | [Rock](https://poly.pizza/m/b7gRkv0cEa) | Quaternius | CC0 1.0 |
 | `assets/models/rock_e.glb` | [Rock Large](https://poly.pizza/m/d2VWOdthtR) | Quaternius | CC0 1.0 |
+| `assets/models/rocket_launcher.glb` | [Rocket Launcher](https://poly.pizza/m/GCqUvqleqN) | Quaternius | CC0 1.0 |
 | `assets/models/soldier_a.glb` | [Character Soldier](https://poly.pizza/m/PpLF4rt4ah) | Quaternius | CC0 1.0 |
 | `assets/models/soldier_b.glb` | [SWAT](https://poly.pizza/m/Btfn3G5Xv4) | Quaternius | CC0 1.0 |
 | `assets/models/tank_a.glb` | [Tank](https://poly.pizza/m/FA5daiyZQq) | Quaternius | CC0 1.0 |

@@ -385,6 +385,19 @@ const INFANTRY_SCALE_PER_METRE := {"soldier_a": 0.44, "soldier_b": 0.6, "mech_a"
 ## Yaw that points each boat's bow down -Z.
 const BOAT_YAW := {"boat_patrol": PI, "boat_fast": PI}
 const SOLDIER_WEAPON := "SMG"
+## Thin faction-coloured outline so units read against sand and shadow from the
+## RTS camera: Coalition cool blue, Iran red. Width is in metres of world space.
+const OUTLINE_COLOR := {
+	"coalition": Color(0.25, 0.62, 1.0),
+	"iran": Color(0.95, 0.22, 0.14),
+}
+const OUTLINE_WIDTH := 0.05
+## Weapon variants by unit id: the mesh to keep on the coalition soldier, and the
+## model to put in the SWAT figure's hand (length in metres, rotation, offset).
+const COALITION_WEAPON := {"javelin": "RocketLauncher"}
+const IRAN_WEAPON := {
+	"irgc_rpg": {"file": "rocket_launcher", "length": 1.15, "rotation": Vector3(0, 90, 90), "offset": Vector3(0, 0.1, 0.05)},
+}
 const RIFLE_IN_HAND_ROTATION := Vector3(0, 90, 90)
 const RIFLE_IN_HAND_OFFSET := Vector3(0, 0.05, 0.0)
 const SOLDIER_WEAPONS := ["Revolver", "Sniper", "Revolver_Small", "Pistol", "SMG", "GrenadeLauncher",
@@ -412,6 +425,7 @@ static func _build_from_assets(root: Node3D, model: String, faction: String) -> 
 			ok = _asset_drone(root, faction)
 	if ok:
 		ModelLibrary.set_layers(root, UNIT_LAYER)
+		ModelLibrary.outline(root, OUTLINE_COLOR.get(faction, Color(0.1, 0.1, 0.1)), OUTLINE_WIDTH)
 	return ok
 
 
@@ -481,11 +495,16 @@ static func _asset_infantry(root: Node3D, faction: String, file: String, height:
 	holder.scale = Vector3.ONE * height * float(INFANTRY_SCALE_PER_METRE[file])
 	holder.rotation.y = PI
 	root.add_child(holder)
+	var unit_id := String(root.get_meta("unit_id", ""))
+	var keep := String(COALITION_WEAPON.get(unit_id, SOLDIER_WEAPON))
 	for weapon: String in SOLDIER_WEAPONS:
 		var w := holder.find_child(weapon, true, false)
-		if w and weapon != SOLDIER_WEAPON:
+		if w and weapon != keep:
 			w.free()
-	if file == "soldier_b" and ModelLibrary.has("rifle_ak"):
+	var hand_weapon := {"file": "rifle_ak", "length": 0.95, "rotation": RIFLE_IN_HAND_ROTATION, "offset": RIFLE_IN_HAND_OFFSET}
+	if IRAN_WEAPON.has(unit_id) and ModelLibrary.has(String(IRAN_WEAPON[unit_id]["file"])):
+		hand_weapon = IRAN_WEAPON[unit_id]
+	if file == "soldier_b" and ModelLibrary.has(String(hand_weapon["file"])):
 		# The SWAT figure is unarmed: put a rifle in its right hand.
 		var skeleton := holder.find_child("Skeleton3D", true, false) as Skeleton3D
 		if skeleton and skeleton.find_bone("Wrist.R") >= 0:
@@ -494,9 +513,9 @@ static func _asset_infantry(root: Node3D, faction: String, file: String, height:
 			skeleton.add_child(hand)
 			# The armature carries its own scale; undo it so the rifle is 0.95 units long.
 			var k := 1.0 / ModelLibrary.xf_to(skeleton, holder).basis.get_scale().x
-			var rifle := ModelLibrary.fitted("rifle_ak", 0.95 * k)
-			rifle.rotation_degrees = RIFLE_IN_HAND_ROTATION
-			rifle.position = RIFLE_IN_HAND_OFFSET * k
+			var rifle := ModelLibrary.fitted(String(hand_weapon["file"]), float(hand_weapon["length"]) * k)
+			rifle.rotation_degrees = hand_weapon["rotation"]
+			rifle.position = (hand_weapon["offset"] as Vector3) * k
 			hand.add_child(rifle)
 	_marker(root, "Muzzle", Vector3(0.15, height * 0.62, -height * 0.35))
 	_box(root, Vector3(0.5, 0.05, 0.05), Vector3(0, height + 0.25, 0), mat("glow:" + faction))

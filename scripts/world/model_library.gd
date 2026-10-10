@@ -92,3 +92,47 @@ static func tint(root: Node3D, color: Color) -> void:
 static func set_layers(root: Node3D, layers: int) -> void:
 	for n in root.find_children("*", "MeshInstance3D", true, false):
 		(n as MeshInstance3D).layers = layers
+
+
+static var _outline_shader: Shader
+static var _outline_mats := {}
+
+
+## Adds an inverted-hull outline to every mesh under `root`. The extra pass is
+## chained to each surface material, so wrecks (which override materials) lose it.
+static func outline(root: Node3D, color: Color, width: float) -> void:
+	if _outline_shader == null:
+		_outline_shader = Shader.new()
+		_outline_shader.code = """shader_type spatial;
+render_mode cull_front, unshaded, depth_draw_opaque, shadows_disabled;
+uniform vec4 line_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform float width = 0.05;
+void vertex() {
+	// Push the shell out along its normals by `width` metres of world space.
+	float s = length(MODEL_MATRIX[0].xyz);
+	VERTEX += NORMAL * width / max(s, 0.0001);
+}
+void fragment() {
+	ALBEDO = line_color.rgb;
+}
+"""
+	var key := "%s_%.3f" % [color.to_html(false), width]
+	if not _outline_mats.has(key):
+		var m := ShaderMaterial.new()
+		m.shader = _outline_shader
+		m.set_shader_parameter("line_color", color)
+		m.set_shader_parameter("width", width)
+		_outline_mats[key] = m
+	for n in root.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		for s in mi.mesh.get_surface_count():
+			var base := mi.get_surface_override_material(s)
+			if base == null:
+				base = mi.mesh.surface_get_material(s)
+			if base == null:
+				continue
+			var copy := base.duplicate() as Material
+			copy.next_pass = _outline_mats[key]
+			mi.set_surface_override_material(s, copy)

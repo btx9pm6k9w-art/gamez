@@ -197,17 +197,18 @@ func set_time_of_day(t: int) -> void:
 	var night := t == TimeOfDay.NIGHT
 	match t:
 		TimeOfDay.GOLDEN_HOUR:
-			# Low warm sun, but high enough that the ground is lit rather than
-			# buried in long orange shadows.
-			sun.rotation_degrees = Vector3(-24.0, -62.0, 0.0)
-			sun.light_color = Color(1.0, 0.86, 0.68)
-			sun.light_energy = 2.0
-			_physical_sky.energy_multiplier = 1.0
-			_physical_sky.turbidity = 5.0
-			environment.tonemap_exposure = 1.1
-			environment.volumetric_fog_albedo = Color(0.95, 0.86, 0.74)
-			environment.volumetric_fog_density = 0.008
-			environment.fog_light_color = Color(0.85, 0.74, 0.6)
+			# Warm but clean: a sun high enough (about 33 degrees) for short shadows,
+			# near-white light, and a cool lifted ambient so shadows are bluish
+			# rather than brown. Haze comes from the depth fog.
+			sun.rotation_degrees = Vector3(-33.0, -62.0, 0.0)
+			sun.light_color = Color(1.0, 0.93, 0.82)
+			sun.light_energy = 2.1
+			_physical_sky.energy_multiplier = 1.15
+			_physical_sky.turbidity = 4.0
+			environment.tonemap_exposure = 0.95
+			environment.volumetric_fog_albedo = Color(0.92, 0.9, 0.86)
+			environment.volumetric_fog_density = 0.006
+			environment.fog_light_color = Color(0.78, 0.8, 0.82)
 		TimeOfDay.MIDDAY:
 			sun.rotation_degrees = Vector3(-52.0, -35.0, 0.0)
 			sun.light_color = Color(1.0, 0.97, 0.92)

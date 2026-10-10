@@ -21,6 +21,20 @@ the `claude/prototype-foundation` branch until PR #1 is merged.
   army once the launchers are known.
 - **Changed** the briefing tips: strikes cost credits and hit your own troops,
   K9s see furthest, the village opens the road for reinforcements.
+### Art pass 2: outlines, anti-tank soldiers, golden hour, Mac export (from the Mac)
+- **macOS export works** (`export_presets.cfg`, Godot 4.7.2 templates): about 71 MB
+  zip, 173 MB app, universal binary, ad-hoc signed. It runs and holds 75 fps at High
+  uncapped. The dev scripts are no longer excluded, because `main.gd` preloads them
+  (excluding them broke the exported game). It is not notarised, so macOS Gatekeeper
+  will ask for a right-click Open the first time.
+- **Faction outlines**: every unit model gets a thin inverted-hull outline, Coalition
+  blue and Iran red (`ModelLibrary.outline`, width 0.05 m), so units read against
+  sand and shadow. Wrecks drop it because they replace materials.
+- **Javelin Team** keeps the soldier's rocket launcher mesh; **IRGC RPG Team** carries
+  the Quaternius rocket launcher (`assets/models/rocket_launcher.glb`, CC0), chosen
+  from the unit id (`COALITION_WEAPON`, `IRAN_WEAPON` in `unit_models.gd`).
+- **Golden hour** is a clean warm light now: sun at 33 degrees instead of 24, near
+  white colour, cooler haze, lower exposure. No orange cast, short shadows.
 
 ### Mac retest of water routes and group AI
 - **Fixed** the "axis must be normalized" error for good: `Vector3.slerp` loses
