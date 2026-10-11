@@ -1,12 +1,16 @@
-# Godot generated
-.godot/
-*.translation
-export_presets.cfg
 # Builds
-/build/
+# Godot generated
+# OS
 *.app
 *.dmg
 *.exe
+*.log
 *.pck
-# OS
+*.translation
 .DS_Store
+.godot/
+/build/
+dist/
+export_presets.cfg
+node_modules/
+screenshots/
