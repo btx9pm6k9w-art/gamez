@@ -47,11 +47,15 @@ I can build and *test* in this Linux container: Node 22, Rust 1.97, Python, head
 
 ## 4. Performance budget (targets, to be verified by measurement)
 
-- 120 fps on Apple Silicon (ProMotion) / 60 fps floor on 2020 M1 Air; frame ≤ 8.3 ms typical.
-- ≤ 300 draw calls (batched), 0 per-frame allocations in the hot path (object pools / typed arrays), sim tick ≤ 1.5 ms at 500 active units.
-- Texture memory ≤ 512 MB (KR's mobile ports fought memory limits; we budget it from day one).
+**Reference machine: MacBook/Mac with Apple M4 Pro, 24 GB unified memory** (your hardware). This is far above anything Kingdom Rush targets, so we spend the headroom on visual quality, not on slack. Caveat: I cannot run on a Mac from this container, so every number below is a *target* until you run the perf HUD on your machine and send me the readout.
+
+- **120 fps locked on ProMotion** (frame ≤ 8.3 ms, p99 ≤ 10 ms); 60 fps floor on an 8 GB M1 as a compatibility tier (auto-selected quality preset).
+- Native Retina output (2× device pixels) with dynamic resolution scaling that only kicks in under load; MSAA/FXAA-class edge smoothing.
+- ≤ 300 draw calls (batched/instanced), 0 per-frame allocations in the hot path (object pools / typed arrays), sim tick ≤ 1.5 ms at 500 active units; sim and render decoupled (fixed 60 Hz sim, interpolated render) so 120 Hz is smooth.
+- **Memory: ≤ 3 GB total, textures ≤ 2 GB** (24 GB unified memory allows high-res atlases; KR's mobile ports fought memory limits, we budget it from day one anyway). Compressed GPU textures where supported to cut bandwidth.
+- Thermals/battery: frame limiter option, pause-when-unfocused, no busy loops, so it stays cool and quiet on a laptop.
 - Load level ≤ 2 s; startup ≤ 3 s.
-- CI perf gate: headless run with a standard stress scene; fail on regression.
+- CI perf gate: headless run with a standard stress scene; fail on regression. A built-in perf HUD (fps, frame-time graph, draw calls, GPU/JS memory) so you can verify on your M4 Pro.
 
 ## 5. Quality & balance process
 - Data-driven content in JSON (`data/` seeds the economy ranges: e.g. HP spans ≈ 20 → 18,000 and bounty ≈ HP/ few; L1–L4 tower cost ladder ≈ 70/110/160/230).
@@ -60,7 +64,12 @@ I can build and *test* in this Linux container: Node 22, Rust 1.97, Python, head
 
 ## 6. Art direction
 Original stylised-painterly fantasy; hand-readable silhouettes; 2D skeletal + sprite-sheet animation with rim-light/normal-map lighting for depth KR's flat sprites lack; layered parallax backgrounds with animated ambience (water, foliage, fog); strong colour coding by damage type; juicy but bounded VFX (hit-stop, squash/stretch, screen-shake options).
-**Assets:** I can generate procedural/vector art and placeholder sprites in code; final-quality characters would need a human artist or an approved AI-art pipeline — tell me your preference.
+**Quality bar:** at least Kingdom Rush: Vengeance / Alliance — rich painted backgrounds, richly animated characters, lively VFX — plus lighting and effects they don't have.
+
+**Honest constraint — art is the bottleneck, not the renderer.** The renderer (lighting, particles, post-FX, 120 fps) is something I can build and measure. But KR-latest *looks* the way it does because of a professional art team (~30-person studio) producing hand-painted backgrounds and per-character animation. I cannot hand-paint that by writing code. What I can do:
+1. Build the renderer and a content pipeline (atlas packer, skeletal-animation runtime, normal-map lighting, palette/grading) so any art dropped in looks its best.
+2. Generate **procedural/vector art in code** (SVG→high-res atlases, procedural terrain/foliage/water shaders). This can look clean and stylised, but will not equal hand-painted KR-latest quality on its own.
+3. For true top-tier visuals you need **real art assets**: a commissioned artist, a licensed asset pack, or an AI image workflow you approve (I have no image-generation tool in this session). Tell me which route, and I'll design the pipeline around it.
 
 ## 7. Milestones
 1. **M0 – Vertical slice engine** (≈ first build): sim core, one map, 3 towers, barracks blocking, hero, waves, WebGL2/WebGPU renderer with lighting, perf HUD, headless tests + screenshots.
@@ -73,4 +82,6 @@ Original stylised-painterly fantasy; hand-readable silhouettes; 2D skeletal + sp
 1. **Tech path:** A (recommended), B, or C?
 2. **Name/theme:** keep the medieval-fantasy lane, or differentiate (e.g. sci-fantasy, steampunk, mythic)? Avoiding Kingdom Rush's IP is required either way.
 3. **Scope of first build:** just the vertical slice (M0), or push through M1?
-4. **Art source:** procedural placeholders first, or do you have an artist/assets?
+4. **Art source (this decides final visual quality):** commissioned artist, licensed pack, AI-assisted workflow you approve, or procedural placeholders first?
+
+*Update 2026-10-11:* target machine confirmed as **M4 Pro / 24 GB**; graphics bar = at least Kingdom Rush latest; performance = smooth 120 fps on that machine (see §4, §6).
