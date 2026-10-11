@@ -8,18 +8,28 @@ Conventions: **[src]** = read from a source; **[inference]** = my conclusion; **
 - So the plan splits the work by what each tool does best, instead of asking AI to animate.
 - I cannot generate images here (no image tool, no GPU). **You run the AI on your M4 Pro; I build everything around it** (prompts, folder contract, import pipeline, lighting, animation runtime).
 
-## 2. The split
+## 2. The plan (revised: quality bar = at least Kingdom Rush; free)
 
-| Layer | Made by | Cost | Why |
-|---|---|---|---|
-| Characters & towers (animated) | **Procedural vector rigs drawn in code by me** — layered parts (body/head/arms/weapon) with skeletal-style animation I write (idle, walk, attack, hit, death) | Free | Perfectly consistent, fully animatable, tiny memory, resolution-independent (crisp on Retina), restylable by changing a palette. Kingdom Rush's own backgrounds were vectors authored in Adobe Animate [src, secondary], so this style is on-target. Ceiling: polished stylized vector, not hand-painted |
-| Maps / backgrounds | **Local AI stills** (you generate) + my layered treatment (parallax, fog, water, foliage sway, lighting) | Free | Stills are AI's strength; I split into layers and animate |
-| Icons, UI plates, portraits | AI stills + my UI code | Free | Same |
-| Concept/reference for rigs | AI stills; I rebuild the design as a vector rig | Free | Gets AI's design quality + code's animation consistency |
-| VFX (hits, spells, fire, lightning, dust) | **Shaders + GPU particles by me** | Free | Code-native, cheap at 120 fps |
-| Placeholder fill | **Kenney (CC0)** packs [src: kenney.nl/support] | Free | Only if I need quick stand-ins |
+You asked for art that is **not worse than Kingdom Rush**, still free. That changes the approach: **painted AI art is the primary source for everything players see** (characters, towers, backgrounds, icons, UI), and my code (procedural vectors) is only a fallback and a rig helper. I am not going to promise what I can't verify: the quality bar is reachable for stills; **animated characters are the one hard part**, so the plan is built around de-risking exactly that.
 
-Optional upgrade path for hero characters: AI character sheet → cut into parts (background removal + manual/auto segmentation) → rig in my runtime. [inference: doable but labor-heavy; evaluate after M1.]
+| Layer | Made by | How quality is protected |
+|---|---|---|
+| Backgrounds / maps | Local AI stills (FLUX/SDXL + style LoRA), 4K, you pick the best of N | Style bible + fixed model/seed families; I split into parallax layers, add animated water/fog/foliage/god-rays and lighting that KR's flat backgrounds lack |
+| Towers, props, icons, UI | AI stills + my processing | Same style LoRA; auto cutout, trim, outline/palette unification, normal maps |
+| Characters (enemies, heroes, soldiers) | **AI-generated sprites + animation by one of three methods, cheapest first** | See below |
+| VFX | Shaders + GPU particles (me) | Real-time; beyond KR's sprite VFX |
+
+**Why this is plausible for characters [inference]:** KR units are small on screen (tens of pixels to ~100 px tall at 1080p), with short, punchy animations. At that size, AI character art rendered at 512–1024 px and downscaled hides most inconsistency, and animations need only ~6–12 frames per cycle.
+
+**Character animation methods (try in order, per unit):**
+1. **Puppet rig from one AI image** — AI generates a character in a neutral pose ("A-pose" turnaround prompt); background removal + part cutting (head/torso/arms/legs/weapon, semi-automatic with segmentation + my editor page); I animate with a skeletal-style runtime I write (idle/walk/attack/hit/death). Fully consistent, tiny memory. Hand-painted look preserved because the pixels *are* the AI paint.
+2. **AI frame cycles** — one approved keyframe + ControlNet/OpenPose + character LoRA in ComfyUI → 8–16 frames [src: ComfyUI/AnimateDiff guides; consistency is the known problem]; my pipeline aligns feet/anchor, fixes palette drift, rejects off-model frames; you approve in a review page.
+3. **Code-driven motion on a single sprite** — bob, lean, squash/stretch, shadow, hit-flash, trails. Good enough for small swarm enemies (goblins, wolves, spiders).
+Bosses/heroes get method 1 or 2 with extra curation; swarm units get 3.
+
+**Quality gate (go/no-go before production):** a **style test** — you generate ~10 assets with the prompt pack in `docs/art/STYLE-BIBLE.md` (1 background, 1 tower, 1 enemy + 2 animation attempts, 1 hero, 4 icons); we compare side by side with Kingdom Rush screenshots at game scale. If it doesn't clear the bar, we adjust model/LoRA/prompt or the character method *before* spending more time.
+
+**Honest risks:** (a) multi-frame consistency may need many re-rolls — it costs your time and GPU minutes (about 20–50 s per image on your Mac, community-reported [unverified]); (b) a style LoRA trained on *your own approved outputs* is the main consistency tool; (c) I cannot see or run your AI tools — you are the eyes on quality, and I will build review pages so judging 50 candidates takes minutes.
 
 ## 3. Your free AI toolbox (run on the M4 Pro)
 
