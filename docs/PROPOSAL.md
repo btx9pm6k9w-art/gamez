@@ -101,3 +101,5 @@ Original stylised-painterly fantasy; hand-readable silhouettes; 2D skeletal + sp
 4. **Art source (this decides final visual quality):** commissioned artist, licensed pack, AI-assisted workflow you approve, or procedural placeholders first?
 
 *Update 2026-10-11:* target machine confirmed as **M4 Pro / 24 GB**; graphics bar = at least Kingdom Rush latest; performance = smooth 120 fps on that machine (see §4, §6).
+
+*Update 2026-10-11 (decisions made):* tech path approved (TypeScript + WebGPU/WebGL2, **Electron** shell); **budget = zero, personal project** → art follows `docs/FREE-ART-PLAN.md` (procedural vector rigs + local free AI stills + my lighting/VFX); starting M0 with defaults (original medieval-fantasy theme, vertical slice scope).
