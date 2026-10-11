@@ -44,12 +44,19 @@ I can build and *test* in this Linux container: Node 22, Rust 1.97, Python, head
 
 | Option | Mac performance/graphics | Verifiable here | Cost |
 |---|---|---|---|
-| **A. TypeScript + WebGPU (WebGL 2 fallback), packaged with Tauri** | Safari 26 / WKWebView has WebGPU → Metal underneath. 120 fps for 2D+lighting is comfortable | **Yes** (headless Chromium, screenshots, perf traces) | Low–medium; also runs in a browser for instant sharing |
+| **A. TypeScript + WebGPU (WebGL 2 fallback), packaged with Electron** | Safari 26 / WKWebView has WebGPU → Metal underneath. 120 fps for 2D+lighting is comfortable | **Yes** (headless Chromium, screenshots, perf traces) | Low–medium; also runs in a browser for instant sharing |
 | B. Rust + `wgpu` native (Metal backend) | Best: native, no JS GC; also compiles to WASM/WebGPU | Partly (sim + software GPU; not Metal) | Higher; slower iteration |
 | C. Native Swift + Metal | Best-in-class on Mac, Mac-only | **No** | Highest risk without a Mac in the loop |
 | D. Godot / Unity | Good, mature tooling | Limited (no editor automation here) | Engine lock-in; editor-bound workflow |
 
-**Recommendation: A**, with an architecture that keeps option B open:
+**Recommendation: A, revised on 2026-10-11 to use Electron (not Tauri) as the shell** — after you asked me to be sure this is the best path. Reasoning:
+- Tauri renders in the *system* WKWebView. WebGPU shipped in Safari 26 / WebKit for macOS (WebKit blog), so whether a Tauri game gets WebGPU depends on the player's macOS version [inference: WKWebView tracks the OS WebKit, not the Safari app]. Electron bundles its own Chromium, so the WebGPU/WebGL2 behavior is identical on every Mac and every update is under our control.
+- Headless Chromium in this container is the same engine family as Electron's renderer, so **I can actually test and profile what your Mac will run**; I cannot test WKWebView.
+- Precedent: Core Defense, a commercial TD, shipped on custom JS + Pixi.js + Electron (see `docs/SIMILAR-GAMES.md`).
+- Cost: larger download and RAM than Tauri — irrelevant for a game with multi-GB art. Steam packaging is more common with Electron too.
+- **Honest limit:** this is the best path *for what I can build and verify and for 2D at 120 fps on an M4 Pro*; a native Metal/Rust renderer would win on raw efficiency and avoid JS garbage-collector pauses, but costs iteration speed and testability. M0 therefore includes a **stress benchmark you run on your Mac** (500+ animated units, lights, particles, 4K): if p99 frame time exceeds 8.3 ms, we move the hot loops (sim and/or batching) to Rust → WASM or switch the renderer to Rust + wgpu, keeping the deterministic sim contract unchanged. Godot/Unity were rejected mainly on testability-from-here and determinism control, not because they are weak.
+
+Architecture (keeps option B open):
 - **Deterministic simulation core** (fixed 60 Hz tick, data-driven, no rendering imports) — unit-testable, replayable, and portable to Rust later.
 - **Renderer** behind a thin interface: instanced sprite batches, texture atlases, 2D dynamic lights with normal maps, GPU particles, post-FX (bloom, soft shadow), resolution scaling for Retina.
 - **Headless balance bot**: plays levels against the sim thousands of times to flag dominant towers/heroes and dead levels (this directly addresses KR's biggest balance complaint).
@@ -84,7 +91,7 @@ Original stylised-painterly fantasy; hand-readable silhouettes; 2D skeletal + sp
 1. **M0 – Vertical slice engine** (≈ first build): sim core, one map, 3 towers, barracks blocking, hero, waves, WebGL2/WebGPU renderer with lighting, perf HUD, headless tests + screenshots.
 2. **M1 – Systems:** upgrade branches, synergies, spells, early-call, fast-forward, UI/UX, bestiary.
 3. **M2 – Content:** 6-map campaign, 12 enemy types, 2 bosses, 3 heroes; balance bot tuning.
-4. **M3 – Polish & Mac packaging:** Tauri build, ProMotion tuning, audio, accessibility, settings, save data.
+4. **M3 – Polish & Mac packaging:** Electron build, ProMotion tuning, audio, accessibility, settings, save data.
 5. **M4 – Endless/roguelite mode.**
 
 ## 8. Decisions needed
