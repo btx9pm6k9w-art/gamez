@@ -49,12 +49,13 @@ export interface World {
   gold: number; lives: number; waveIndex: number; waveTimer: number; spawnQueue: { at: number; type: EnemyId }[];
   reinforceCd: number; nextId: number; towers: Tower[]; enemies: Enemy[]; soldiers: Soldier[]; projectiles: Projectile[];
   events: SimEvent[]; leaked: number; kills: number;
+  enemyIdx: Map<number, Enemy>; soldierIdx: Map<number, Soldier>; // id lookups (O(1)); kept in sync by add*/cleanup
 }
 
 export function createWorld(seed = 1, map: MapDef = MAP_FARMLANDS): World {
   return {
     map, path: new PathMeasure(map.path), rng: new Rng(seed), tick: 0, time: 0, status: 'playing', gold: map.startGold, lives: map.startLives,
-    waveIndex: 0, waveTimer: map.firstWaveIn, spawnQueue: [], reinforceCd: 0, nextId: 1, towers: [], enemies: [], soldiers: [], projectiles: [], events: [], leaked: 0, kills: 0,
+    waveIndex: 0, waveTimer: map.firstWaveIn, spawnQueue: [], reinforceCd: 0, nextId: 1, towers: [], enemies: [], soldiers: [], projectiles: [], events: [], leaked: 0, kills: 0, enemyIdx: new Map(), soldierIdx: new Map(),
   };
 }
 
@@ -63,15 +64,17 @@ const dist = (a: Vec, b: Vec) => Math.hypot(a.x - b.x, a.y - b.y);
 const roll = (w: World, d: Dmg) => w.rng.range(d[0], d[1]);
 export const towerCost = (kind: TowerKind, level: number): number => (kind === 'barracks' ? BARRACKS.levels[level].cost : SHOOTERS[kind].levels[level].cost);
 export const maxLevel = (kind: TowerKind): number => (kind === 'barracks' ? BARRACKS.levels.length : SHOOTERS[kind].levels.length) - 1;
-export const enemyById = (w: World, id: number | null) => (id == null ? undefined : w.enemies.find((e) => e.id === id && e.alive));
-const soldierById = (w: World, id: number | null) => (id == null ? undefined : w.soldiers.find((s) => s.id === id && s.alive));
+export const enemyById = (w: World, id: number | null) => { if (id == null) return undefined; const e = w.enemyIdx.get(id); return e && e.alive ? e : undefined; };
+const soldierById = (w: World, id: number | null) => { if (id == null) return undefined; const s = w.soldierIdx.get(id); return s && s.alive ? s : undefined; };
 
 function spawnSoldier(w: World, t: Tower | null, idx: number, at: Vec, rally: Vec, life: number | null): Soldier {
   const lv = t ? BARRACKS.levels[t.level] : { hp: REINFORCE.hp, dmg: REINFORCE.dmg, armor: REINFORCE.armor, atkEvery: REINFORCE.atkEvery };
   const s: Soldier = { id: w.nextId++, tower: t ? t.id : null, idx, x: at.x, y: at.y, px: at.x, py: at.y, rx: rally.x + FORMATION[idx % 3].x, ry: rally.y + FORMATION[idx % 3].y,
     hp: lv.hp, maxHp: lv.hp, dmg: lv.dmg, armor: lv.armor, atkEvery: lv.atkEvery, atkCd: 0, target: null, life, alive: true };
-  w.soldiers.push(s); return s;
+  w.soldiers.push(s); w.soldierIdx.set(s.id, s); return s;
 }
+
+export function applyCommands(w: World, cmds: Command[]): void { for (const c of cmds) applyCommand(w, c); }
 
 function applyCommand(w: World, c: Command): void {
   switch (c.type) {
@@ -127,9 +130,10 @@ function spawnWave(w: World): void {
   w.waveTimer = w.waveIndex < w.map.waves.length ? wave.nextIn : Infinity;
 }
 
-function addEnemy(w: World, type: EnemyId): void {
-  const def = ENEMIES[type]; const p = w.path.at(0);
-  w.enemies.push({ id: w.nextId++, def: type, hp: def.hp, maxHp: def.hp, d: 0, x: p.x, y: p.y, px: p.x, py: p.y, blockedBy: null, atkCd: 0, alive: true });
+export function addEnemy(w: World, type: EnemyId, hp?: number, d = 0): Enemy {
+  const def = ENEMIES[type]; const p = w.path.at(d); const h = hp ?? def.hp;
+  const e: Enemy = { id: w.nextId++, def: type, hp: h, maxHp: h, d, x: p.x, y: p.y, px: p.x, py: p.y, blockedBy: null, atkCd: 0, alive: true };
+  w.enemies.push(e); w.enemyIdx.set(e.id, e); return e;
 }
 
 export function step(w: World, cmds: Command[] = []): void {
@@ -201,11 +205,14 @@ export function step(w: World, cmds: Command[] = []): void {
     } else { p.x += (dx / d) * m; p.y += (dy / d) * m; }
   }
   // cleanup
-  w.enemies = w.enemies.filter((e) => e.alive); w.soldiers = w.soldiers.filter((s) => s.alive); w.projectiles = w.projectiles.filter((p) => p.alive);
+  compact(w.enemies, (e) => { if (!e.alive) w.enemyIdx.delete(e.id); return e.alive; }); compact(w.soldiers, (q) => { if (!q.alive) w.soldierIdx.delete(q.id); return q.alive; }); compact(w.projectiles, (p) => p.alive);
   w.tick++; w.time += DT;
   if (w.lives <= 0) { w.lives = 0; w.status = 'lost'; w.events.push({ type: 'lost' }); }
   else if (w.waveIndex >= w.map.waves.length && w.spawnQueue.length === 0 && w.enemies.length === 0) { w.status = 'won'; w.events.push({ type: 'won' }); }
 }
+
+/** In-place filter (no per-tick array allocation). */
+function compact<T>(a: T[], keep: (x: T) => boolean): void { let j = 0; for (let i = 0; i < a.length; i++) { const x = a[i]; if (keep(x)) a[j++] = x; } a.length = j; }
 
 function killEnemy(w: World, e: Enemy): void {
   if (!e.alive) return; e.alive = false; w.gold += ENEMIES[e.def].bounty; w.kills++; w.events.push({ type: 'death', x: e.x, y: e.y, id: e.id });

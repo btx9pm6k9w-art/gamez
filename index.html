@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Gamez — Tower Defense (prototype)</title>
+<style>
+  :root { --ink:#fff6dc; --panel:rgba(26,18,10,.82); --edge:#c89b4a; --good:#7ee07a; --bad:#ff6a5a; }
+  html,body { margin:0; height:100%; background:#14182a; overflow:hidden; font:600 14px/1.2 ui-rounded,"SF Pro Rounded",system-ui,sans-serif; color:var(--ink); user-select:none; -webkit-user-select:none; }
+  #app { position:fixed; inset:0; } canvas { display:block; }
+  .panel { position:absolute; background:var(--panel); border:2px solid var(--edge); border-radius:10px; padding:8px 12px; box-shadow:0 4px 14px rgba(0,0,0,.45); }
+  #top { left:12px; top:12px; display:flex; gap:16px; align-items:center; font-size:16px; }
+  #top b { color:#ffd24a; } #top .lives b { color:#ff7a6a; }
+  #right { right:12px; bottom:12px; display:flex; gap:8px; align-items:center; }
+  button { font:inherit; color:var(--ink); background:#5a3b17; border:2px solid var(--edge); border-radius:8px; padding:7px 11px; cursor:pointer; }
+  button:hover:not(:disabled) { background:#7a5222; } button:disabled { opacity:.45; cursor:default; } button.on { background:#2f6fd0; border-color:#bcd7ff; }
+  #perf { left:12px; bottom:12px; font:500 11px/1.35 ui-monospace,Menlo,monospace; white-space:pre; padding:6px 9px; opacity:.9; }
+  #menu { display:none; flex-direction:column; gap:6px; transform:translate(-50%,-100%); margin-top:-14px; min-width:170px; }
+  #menu .title { text-align:center; opacity:.85; font-size:12px; } #menu button { display:flex; justify-content:space-between; gap:14px; text-align:left; } .gold { color:#ffd24a; }
+  #banner { inset:0; display:none; align-items:center; justify-content:center; flex-direction:column; gap:14px; background:rgba(8,6,20,.62); font-size:30px; border:0; border-radius:0; }
+  #hint { left:50%; top:12px; transform:translateX(-50%); font-size:13px; opacity:.9; display:none; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="hud">
+  <div id="top" class="panel"><span>Gold <b id="gold">0</b></span><span class="lives">Lives <b id="lives">0</b></span><span>Wave <b id="wave">0/0</b></span><span id="timer"></span></div>
+  <div id="hint" class="panel"></div>
+  <div id="menu" class="panel"></div>
+  <div id="right" class="panel">
+    <button id="btnReinf" title="Reinforcements [1]">Reinforce [1]</button>
+    <button id="btnCall" title="Call next wave early [Space]">Call wave [Space]</button>
+    <button id="btnPause" title="Pause & plan [P]">Pause [P]</button>
+    <button id="btnSpeed" title="Speed [F]">1×</button>
+  </div>
+  <div id="perf" class="panel"></div>
+  <div id="banner" class="panel"></div>
+</div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>

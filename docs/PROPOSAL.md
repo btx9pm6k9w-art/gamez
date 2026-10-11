@@ -103,3 +103,5 @@ Original stylised-painterly fantasy; hand-readable silhouettes; 2D skeletal + sp
 *Update 2026-10-11:* target machine confirmed as **M4 Pro / 24 GB**; graphics bar = at least Kingdom Rush latest; performance = smooth 120 fps on that machine (see §4, §6).
 
 *Update 2026-10-11 (decisions made):* tech path approved (TypeScript + WebGPU/WebGL2, **Electron** shell); **budget = zero, personal project** → art follows `docs/FREE-ART-PLAN.md` (procedural vector rigs + local free AI stills + my lighting/VFX); starting M0 with defaults (original medieval-fantasy theme, vertical slice scope).
+
+*Update 2026-10-11 (M0 built):* the vertical slice exists (see `README.md`). Finding: **WebGPU could not be verified in this container** (software WebGPU device is lost even for a trivial scene), so the renderer **defaults to WebGL2** (Metal-backed via ANGLE on macOS, and verified) with WebGPU opt-in (`?renderer=webgpu`) and automatic fallback on device loss. The in-game benchmark (key `B`) decides the default after you run it on the M4 Pro. Sim cost measured: ~0.29 ms per step at 400 enemies (container CPU).

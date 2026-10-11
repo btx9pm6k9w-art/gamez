@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createWorld, step, hashWorld, DT, type Command } from '../src/sim/world';
+import { createWorld, step, hashWorld, addEnemy, DT, type Command } from '../src/sim/world';
 import { ENEMIES, BARRACKS } from '../src/sim/data';
 import { DEFAULT_PLAN, playBot } from '../src/sim/bot';
 
@@ -30,8 +30,8 @@ describe('blocking', () => {
     expect(w.soldiers.length).toBe(BARRACKS.soldiers);
     const t = w.towers[0]; const rp = t.rally;
     // put a lone strong orc on the rally point
-    w.enemies.push({ id: 9999, def: 'orc', hp: 9999, maxHp: 9999, d: 0, x: rp.x, y: rp.y, px: rp.x, py: rp.y, blockedBy: null, atkCd: 0, alive: true });
-    const d0 = w.path.nearest(rp); void d0; const orc = w.enemies.find((e) => e.id === 9999)!;
+    const orc = addEnemy(w, 'orc', 9999);
+    const d0 = w.path.nearest(rp); void d0;
     orc.d = (() => { let best = 0, bd = Infinity; for (let d = 0; d < w.path.total; d += 1) { const p = w.path.at(d); const dd = Math.hypot(p.x - rp.x, p.y - rp.y); if (dd < bd) { bd = dd; best = d; } } return best; })();
     run(w, 1.0);
     expect(orc.blockedBy).not.toBeNull(); const dWhile = orc.d; run(w, 2); expect(orc.d).toBe(dWhile); // not moving while engaged
@@ -48,9 +48,9 @@ describe('blocking', () => {
   });
   it('barracks soldiers respawn after the respawn delay', () => {
     const w = createWorld(3); step(w, [{ type: 'build', slot: 1, kind: 'barracks' }]); run(w, 12);
-    const s = w.soldiers[0]; s.hp = 0; w.enemies.push({ id: 5000, def: 'goblin', hp: 1e6, maxHp: 1e6, d: 100, x: 0, y: 0, px: 0, py: 0, blockedBy: s.id, atkCd: 0, alive: true });
+    const s = w.soldiers[0]; s.hp = 0;
     // kill via damage path
-    s.alive = false; w.towers[0].soldierIds[s.idx] = null; w.towers[0].respawn[s.idx] = BARRACKS.respawn; w.enemies.length = 0; w.soldiers = w.soldiers.filter((q) => q.alive);
+    s.alive = false; w.towers[0].soldierIds[s.idx] = null; w.towers[0].respawn[s.idx] = BARRACKS.respawn; w.soldiers = w.soldiers.filter((q) => q.alive); w.soldierIdx.delete(s.id);
     run(w, BARRACKS.respawn + 1); expect(w.soldiers.length).toBe(BARRACKS.soldiers);
   });
 });
