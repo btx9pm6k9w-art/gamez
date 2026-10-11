@@ -1,0 +1,266 @@
+{
+ "source": "kingdomrushtd.fandom.com (CC-BY-SA)",
+ "levels": [
+  {
+   "page": "Ancient Necropolis",
+   "name": "Ancient Necropolis",
+   "type": "Elite",
+   "campaign": "Curse of Castle Blackburn",
+   "environment": "Haunted Wastes",
+   "previous": "Rotwick",
+   "next": "Nightfang Swale",
+   "gold": "900 (Campaign) 1100 ([[Heroic Challenge"
+  },
+  {
+   "page": "Bandit's Lair",
+   "name": "Bandit's Lair",
+   "type": "Elite",
+   "campaign": "Rise of the Bandits",
+   "environment": "Plains",
+   "previous": "Hushwood",
+   "next": "n/a",
+   "gold": "800 (Campaign) 1500 ([[Heroic Challenge"
+  },
+  {
+   "page": "Castle Blackburn",
+   "name": "Castle Blackburn",
+   "type": "Elite",
+   "campaign": "Curse of Castle Blackburn",
+   "environment": "Haunted Wastes",
+   "previous": "Nightfang Swale",
+   "next": "n/a",
+   "gold": "1250 (Campaign) 1100 ([[Heroic Challenge"
+  },
+  {
+   "page": "The Citadel",
+   "name": "The Citadel",
+   "type": "Standard",
+   "campaign": "Main",
+   "environment": "Plains",
+   "previous": "Silveroak Forest",
+   "next": "Coldstep Mines",
+   "gold": "700 (Campaign) 1200 ([[Heroic Challenge"
+  },
+  {
+   "page": "Coldstep Mines",
+   "name": "Coldstep Mines",
+   "type": "Standard",
+   "campaign": "Main",
+   "environment": "Mountains",
+   "previous": "The Citadel",
+   "next": "Icewind Pass",
+   "gold": "700 (Campaign) 1000 ([[Heroic Challenge"
+  },
+  {
+   "page": "The Dark Tower",
+   "name": "The Dark Tower",
+   "type": "Standard",
+   "campaign": "Main",
+   "environment": "Wastes",
+   "previous": "Forsaken Valley",
+   "gold": "1300 (Campaign) 1600 ([[Heroic Challenge"
+  },
+  {
+   "page": "Forsaken Valley",
+   "name": "Forsaken Valley",
+   "type": "Standard",
+   "campaign": "Main",
+   "environment": "Wastes",
+   "previous": "The Wastes",
+   "next": "The Dark Tower",
+   "gold": "1300 (Campaign) 2100 ([[Heroic Challenge"
+  },
+  {
+   "page": "Fungal Forest",
+   "name": "Fungal Forest",
+   "type": "Elite",
+   "campaign": "Fungal Forest",
+   "environment": "Wastes",
+   "previous": "Rotten Forest",
+   "next": "n/a"
+  },
+  {
+   "page": "Glacial Heights",
+   "name": "Glacial Heights",
+   "type": "Elite",
+   "campaign": "Winter storm",
+   "environment": "Mountain",
+   "previous": "n/a",
+   "next": "Ha'Kraj Plateau",
+   "gold": "600 (Campaign) 1500 ([[Heroic Challenge"
+  },
+  {
+   "page": "Ha'Kraj Plateau",
+   "name": "Ha'Kraj Plateau",
+   "type": "Elite",
+   "campaign": "Winter Storm",
+   "environment": "Mountain",
+   "previous": "Glacial Heights",
+   "gold": "1000 (Campaign) 1900 ([[Heroic Challenge"
+  },
+  {
+   "page": "Hushwood",
+   "name": "Hushwood",
+   "type": "Elite",
+   "campaign": "Rise of the Bandits",
+   "environment": "Forest",
+   "previous": "n/a",
+   "next": "Bandit's Lair",
+   "gold": "500 (Campaign) 1250 ([[Heroic Challenge"
+  },
+  {
+   "page": "Icewind Pass",
+   "name": "Icewind Pass",
+   "type": "Standard",
+   "campaign": "Main",
+   "environment": "Mountains",
+   "previous": "Coldstep Mines",
+   "next": "Stormcloud Temple",
+   "gold": "800 (Campaign) 1100 ([[Heroic Challenge"
+  },
+  {
+   "page": "Nightfang Swale",
+   "name": "Nightfang Swale",
+   "type": "Elite",
+   "campaign": "Curse of Castle Blackburn",
+   "environment": "Haunted Wastes",
+   "previous": "Ancient Necropolis",
+   "next": "Castle Blackburn",
+   "gold": "1100 (Campaign) 1500 ([[Heroic Challenge"
+  },
+  {
+   "page": "Pagras",
+   "name": "Pagras",
+   "type": "Standard",
+   "campaign": "Main",
+   "environment": "Plains",
+   "previous": "The Farmlands",
+   "next": "Twin Rivers",
+   "gold": "300 (Campaign) 310 (Heroic Challenge) 500 ([[Iron Challenge"
+  },
+  {
+   "page": "Pandaemonium",
+   "name": "Pand\u00e6monium",
+   "type": "Elite",
+   "campaign": "Burning Torment",
+   "environment": "Hell",
+   "previous": "Pit of Fire",
+   "next": "n/a",
+   "gold": "900 (Campaign) 2200 ([[Heroic Challenge"
+  },
+  {
+   "page": "Pit of Fire",
+   "name": "Pit of Fire",
+   "type": "Elite",
+   "campaign": "Burning Torment",
+   "environment": "Hell",
+   "previous": "n/a",
+   "next": "Pandaemonium",
+   "gold": "1200 (Campaign) 1900 ([[Iron Challenge"
+  },
+  {
+   "page": "Rage Valley",
+   "name": "Rage Valley",
+   "type": "Endless",
+   "environment": "Plains",
+   "gold": "340"
+  },
+  {
+   "page": "Rotten Forest",
+   "name": "Rotten Forest",
+   "type": "Elite",
+   "campaign": "Fungal Forest",
+   "environment": "Wastes",
+   "previous": "n/a",
+   "next": "Fungal Forest"
+  },
+  {
+   "page": "Rotwick",
+   "name": "Rotwick",
+   "type": "Elite",
+   "campaign": "Curse of Castle Blackburn",
+   "environment": "Haunted Wastes",
+   "previous": "n/a",
+   "next": "Ancient Necropolis",
+   "gold": "750 (Campaign) 1450 ([[Heroic Challenge"
+  },
+  {
+   "page": "Ruins of Acaroth",
+   "name": "Ruins of Acaroth",
+   "type": "Elite",
+   "campaign": "Standalone",
+   "environment": "Plains",
+   "previous": "n/a",
+   "next": "n/a",
+   "gold": "600 (Campaign) 2000 ([[Heroic Challenge"
+  },
+  {
+   "page": "Sarelgaz's Lair",
+   "name": "Sarelgaz's Lair",
+   "type": "Elite",
+   "campaign": "Standalone",
+   "environment": "Mountain",
+   "previous": "n/a",
+   "next": "n/a"
+  },
+  {
+   "page": "Silveroak Forest",
+   "name": "Silveroak Forest",
+   "type": "Standard",
+   "campaign": "Main",
+   "environment": "Forest",
+   "previous": "Twin Rivers",
+   "next": "The Citadel",
+   "gold": "700 (Campaign) 1000 ([[Heroic Challenge"
+  },
+  {
+   "page": "Southport",
+   "name": "Southport",
+   "type": "Standard",
+   "campaign": "Main",
+   "environment": "Plains",
+   "next": "The Farmlands",
+   "gold": "265 (Campaign) 170 ([[Heroic Challenge"
+  },
+  {
+   "page": "Stormcloud Temple",
+   "name": "Stormcloud Temple",
+   "type": "Standard",
+   "campaign": "Main",
+   "environment": "Mountains",
+   "previous": "Icewind Pass",
+   "next": "The Wastes",
+   "gold": "800 (Campaign) 2000 ([[Heroic Challenge"
+  },
+  {
+   "page": "The Farmlands",
+   "name": "The Farmlands",
+   "type": "Standard",
+   "campaign": "Main",
+   "environment": "Plains",
+   "previous": "Southport",
+   "next": "Pagras",
+   "gold": "220 ([[The Farmlands#Campaign"
+  },
+  {
+   "page": "Twin Rivers",
+   "name": "Twin Rivers",
+   "type": "Standard",
+   "campaign": "Main",
+   "environment": "Plains",
+   "previous": "Pagras",
+   "next": "Silveroak Forest",
+   "gold": "520 (Campaign) 600 ([[Heroic Challenge"
+  },
+  {
+   "page": "The Wastes",
+   "name": "The Wastes",
+   "type": "Standard",
+   "campaign": "Main",
+   "environment": "Wastes",
+   "previous": "Stormcloud Temple",
+   "next": "Forsaken Valley",
+   "gold": "800 (Campaign) 1800 ([[Heroic Challenge"
+  }
+ ]
+}
