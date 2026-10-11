@@ -29,6 +29,15 @@ Damage model (kept because it is good, and simple to read): physical vs magic, %
 
 Enemy design rules (from KR's strengths): every enemy has one readable role and one clear counter; silhouettes distinct at 24 px; telegraph every special ability (≥ 0.5 s wind-up VFX); bosses reward preparation and are never soft-lockouts for most towers.
 
+### 2b. Lessons folded in from similar games (see `docs/SIMILAR-GAMES.md`)
+- **Cap the roster**: ~5 classes × 3 branches, one clear job each (X-Morph shipped after cutting 58 towers/92 add-ons down).
+- **Mistakes are cheap**: sell refund ≥ 80 % (KR: 60 %), free soldier repositioning, checkpoint revert in campaign, optional redeploy cooldown (Arknights/Defense Grid).
+- **Waves as parametric data** (Mindustry's `begin/end/spacing/amount/scaling/shields/effect`), hand-tuned income per wave for the campaign, seeded generator for endless; scale **shields/armor**, not just HP.
+- **Balance from first principles** (Goal Defense): derive creep HP from tower DPS × covered path time; aim for a new tower every 1–2 waves and ~60–70 % of slots used at win.
+- **Forced movement** (knockback into blockers, pulls, traps) as the signature synergy with blocking (Dungeon Warfare).
+- **Bot-testable by construction**: deterministic sim, seeded RNG, action journal, exact state, action receipts, snapshot/branch replay — the four gates the Kingdom Rush ML-agent project had to retrofit via a bridge.
+- Honest risk: no open-source reference implements KR-quality melee-blocking AI; it is our core R&D item.
+
 ## 3. Technology — the decision I need from you
 
 I can build and *test* in this Linux container: Node 22, Rust 1.97, Python, headless Chromium. I cannot run Swift/Xcode/Metal here, so anything native-Mac cannot be verified by me.
