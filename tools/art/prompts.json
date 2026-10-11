@@ -1,0 +1,18 @@
+{
+  "style": "hand-painted cartoon fantasy game art, bold dark-brown outline, saturated colors, soft rim light, simple 3-step shading, chunky proportions, clean silhouette",
+  "sprite_suffix": "isolated on plain light-gray background, 2D game sprite",
+  "negative": "photo, realistic, 3d render, blurry, text, watermark, extra limbs, deformed hands, busy background, thin lines, dark, low contrast",
+  "assets": [
+    {"id":"bg_farmland","kind":"background","w":1024,"h":768,"prompt":"top-down three-quarter view of a sunny medieval farmland valley with a winding dirt road, wooden fences, haystacks, small river, stone bridge, tall grass, vibrant colors, soft light, wide landscape, no characters, no text"},
+    {"id":"tower_archer","kind":"sprite","w":1024,"h":1024,"prompt":"stone and wood archer tower with thatched roof and two small archers, front three-quarter view"},
+    {"id":"tower_barracks","kind":"sprite","w":1024,"h":1024,"prompt":"small stone barracks with banner flags and shield rack, front three-quarter view"},
+    {"id":"tower_mage","kind":"sprite","w":1024,"h":1024,"prompt":"slender blue stone wizard tower with glowing crystal on top and floating runes, front three-quarter view"},
+    {"id":"enemy_goblin","kind":"sprite","w":1024,"h":1024,"prompt":"small green goblin with a rusty dagger and wooden shield, snarling, walking pose facing right, full body"},
+    {"id":"enemy_orc","kind":"sprite","w":1024,"h":1024,"prompt":"big armored orc brute with spiked club and iron shoulder plates, facing right, full body"},
+    {"id":"hero_knight","kind":"sprite","w":1024,"h":1024,"prompt":"heroic knight in polished steel armor with red cape and large sword, confident stance facing right, full body"},
+    {"id":"anim_goblin_walk","kind":"sprite","w":1536,"h":512,"prompt":"character turnaround sheet, same goblin, 4 walk-cycle key poses in a single row, facing right, evenly spaced, consistent design"},
+    {"id":"icon_sword","kind":"sprite","w":512,"h":512,"prompt":"game UI icon of a sword, centered"},
+    {"id":"icon_coin","kind":"sprite","w":512,"h":512,"prompt":"game UI icon of a gold coin, centered"},
+    {"id":"ui_panel","kind":"sprite","w":1024,"h":768,"prompt":"ornate wooden panel frame with iron corners and parchment center, front view, empty center"}
+  ]
+}
